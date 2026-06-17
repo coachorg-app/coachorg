@@ -6,8 +6,41 @@
 <meta name="theme-color" content="#1a1a2e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CoachOrg">
 <link rel="manifest" href="manifest.json">
 <title>CoachOrg</title>
+<script>
+// Gera ícone PNG via canvas para iOS (apple-touch-icon)
+(function(){
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 180;
+    const ctx = c.getContext('2d');
+    const r = 36;
+    ctx.beginPath();
+    ctx.moveTo(r,0); ctx.lineTo(180-r,0); ctx.quadraticCurveTo(180,0,180,r);
+    ctx.lineTo(180,180-r); ctx.quadraticCurveTo(180,180,180-r,180);
+    ctx.lineTo(r,180); ctx.quadraticCurveTo(0,180,0,180-r);
+    ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0); ctx.closePath();
+    ctx.fillStyle='#0f0f1a'; ctx.fill();
+    const g = ctx.createLinearGradient(0,0,180,180);
+    g.addColorStop(0,'#ff5252'); g.addColorStop(1,'#ff4081');
+    ctx.strokeStyle=g; ctx.lineWidth=5.5; ctx.lineCap='round';
+    // dois círculos (cabeças)
+    ctx.beginPath(); ctx.arc(63,58,16,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(117,58,16,0,Math.PI*2); ctx.stroke();
+    // corpos
+    ctx.beginPath(); ctx.moveTo(47,99); ctx.bezierCurveTo(47,79,79,79,79,99); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(101,99); ctx.bezierCurveTo(101,79,133,79,133,99); ctx.stroke();
+    // linhas
+    ctx.beginPath(); ctx.moveTo(54,118); ctx.lineTo(126,118); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(54,132); ctx.lineTo(108,132); ctx.stroke();
+    const link = document.createElement('link');
+    link.rel='apple-touch-icon'; link.href=c.toDataURL('image/png');
+    document.head.appendChild(link);
+  } catch(e){}
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%23ff5252'/><stop offset='100%25' stop-color='%23ff4081'/></linearGradient></defs><rect fill='%230f0f1a' width='100' height='100' rx='22'/><circle cx='35' cy='32' r='9' stroke='url(%23g)' stroke-width='3' fill='none'/><circle cx='65' cy='32' r='9' stroke='url(%23g)' stroke-width='3' fill='none'/><path d='M26 55 C26 44 44 44 44 55' stroke='url(%23g)' stroke-width='3' fill='none' stroke-linecap='round'/><path d='M56 55 C56 44 74 44 74 55' stroke='url(%23g)' stroke-width='3' fill='none' stroke-linecap='round'/><path d='M30 65 L70 65 M30 73 L60 73' stroke='url(%23g)' stroke-width='3' stroke-linecap='round'/></svg>">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
