@@ -576,6 +576,7 @@ body {
 .header { backdrop-filter: blur(20px); background: #0f0f1af0; }
 .header h1 span { background: linear-gradient(135deg, #ff5252, #ff4081); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 </style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2284923541901387" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -790,14 +791,12 @@ body {
 
 <!-- AD BANNER (só aparece no plano gratuito) -->
 <div class="ad-banner hidden" id="adBanner">
-  <!-- Cole aqui o código do Google AdSense quando aprovado -->
-  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
-  <ins class="adsbygoogle" style="display:block;width:100%;height:60px" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="XXXXXXXXXX" data-ad-format="banner"></ins>
-  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
-  <div style="width:100%;text-align:center;padding:10px;font-size:11px;color:var(--text2)">
-    <span style="background:var(--card2);padding:4px 10px;border-radius:6px;letter-spacing:.5px">PUBLICIDADE</span>
-    <div style="margin-top:4px;font-size:12px;color:var(--text2)">Espaço reservado para anúncio</div>
-  </div>
+  <ins class="adsbygoogle"
+       style="display:block;width:100%;height:60px"
+       data-ad-client="ca-pub-2284923541901387"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </div>
 
 <!-- UPGRADE MODAL -->
@@ -904,6 +903,10 @@ body {
           <div class="day-pick" data-day="4" onclick="toggleDay(this)">Q</div>
           <div class="day-pick" data-day="5" onclick="toggleDay(this)">S</div>
           <div class="day-pick" data-day="6" onclick="toggleDay(this)">S</div>
+        </div>
+        <div id="dayTypeSection" style="display:none;margin-top:10px">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Tipo de treino por dia</div>
+          <div id="dayTypeList"></div>
         </div>
       </div>
       <div class="form-group">
@@ -1144,6 +1147,7 @@ function renderHome() {
           <div class="schedule-name">${s.name}</div>
           <div style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             ${s.goal||''}
+            ${workoutChip(s.dayTypes && s.dayTypes[dow])}
             ${countdown}
             ${waSent?'<span class="wa-status wa-sent">WA Enviado</span>':''}
           </div>
@@ -1299,7 +1303,7 @@ function renderSchedule() {
         <div class="schedule-time">${s.time||'06:00'}</div>
         <div style="flex:1">
           <div class="schedule-name">${s.name}</div>
-          <div style="font-size:11px;color:var(--text2)">${s.classType&&s.classType!=='Individual'?'👥 '+s.classType+' · ':''}${s.goal||''}${s.local?' · 📍'+s.local:''}</div>
+          <div style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px;flex-wrap:wrap">${s.classType&&s.classType!=='Individual'?'👥 '+s.classType+' · ':''}${s.goal||''}${s.local?' · 📍'+s.local:''} ${workoutChip(s.dayTypes&&s.dayTypes[selectedWeekDay])}</div>
         </div>
         ${s.phone?`<button class="wa-btn wa-btn-small" onclick="event.stopPropagation();openWaModal('${s.id}')" style="padding:6px 10px;font-size:11px">${waIcon()} Msg</button>`:''}
       </div>`;
@@ -1623,6 +1627,7 @@ function showStudentDetail(id) {
       <div class="student-days" style="gap:6px">
         ${DAYS_SHORT.map((d,i)=>`<div class="day-dot ${s.days&&s.days.includes(i)?'active':''}" style="width:36px;height:36px;font-size:11px">${d}</div>`).join('')}
       </div>
+      ${s.days&&s.days.length&&s.dayTypes&&Object.keys(s.dayTypes).length?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">${[...s.days].sort((a,b)=>a-b).map(i=>{const t=s.dayTypes[i]||s.dayTypes[String(i)];return t?`<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--text2);min-width:30px">${DAYS_SHORT[i]}</span>${workoutChip(t)}</div>`:'';}).filter(Boolean).join('')}</div>`:''}
       <div style="margin-top:10px;font-size:13px;color:var(--text2)">Horário: <strong style="color:var(--text)">${s.time||'06:00'}</strong></div>
       <div style="margin-top:4px;font-size:13px;color:var(--text2)">Objetivo: <strong style="color:var(--text)">${s.goal||'-'}</strong></div>
       ${s.local?`<div style="margin-top:4px;font-size:13px;color:var(--text2)">Local: <strong style="color:var(--text)">${s.local}</strong></div>`:''}
@@ -1704,6 +1709,7 @@ function openAddStudent() {
   document.getElementById('fNotes').value = '';
   document.getElementById('btnDelete').style.display = 'none';
   document.querySelectorAll('.day-pick').forEach(d=>d.classList.remove('selected'));
+  updateDayTypeSection();
   onClassTypeChange();
   document.getElementById('modalStudent').classList.add('show');
 }
@@ -1727,18 +1733,60 @@ function editStudent(id) {
   document.querySelectorAll('.day-pick').forEach(d=>{
     d.classList.toggle('selected', s.days && s.days.includes(parseInt(d.dataset.day)));
   });
+  updateDayTypeSection();
+  if(s.dayTypes) {
+    document.querySelectorAll('#dayTypeList select').forEach(sel=>{
+      const v = s.dayTypes[sel.dataset.day] || s.dayTypes[parseInt(sel.dataset.day)];
+      if(v) sel.value = v;
+    });
+  }
   onClassTypeChange(s.groupMembers || []);
   document.getElementById('modalStudent').classList.add('show');
 }
 
 function closeModal() { document.getElementById('modalStudent').classList.remove('show'); }
 
-function toggleDay(el) { el.classList.toggle('selected'); }
+const WORKOUT_TYPES = ['Inferiores','Superiores','Full Body','HIIT','Cardio','Funcional','Mobilidade','Outro'];
+const WORKOUT_COLORS = {Inferiores:'#ff5252',Superiores:'#5b8cff','Full Body':'#9c5bff',HIIT:'#ff6d00',Cardio:'#00c853',Funcional:'#ffab00',Mobilidade:'#00bcd4',Outro:'#888'};
+
+function workoutChip(type) {
+  if(!type) return '';
+  const c = WORKOUT_COLORS[type] || '#888';
+  return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:${c}25;color:${c}">${type}</span>`;
+}
+
+function updateDayTypeSection() {
+  const selected = Array.from(document.querySelectorAll('.day-pick.selected'))
+    .sort((a,b)=>parseInt(a.dataset.day)-parseInt(b.dataset.day));
+  const section = document.getElementById('dayTypeSection');
+  const list = document.getElementById('dayTypeList');
+  if(!section) return;
+  if(selected.length===0){section.style.display='none';list.innerHTML='';return;}
+  section.style.display='';
+  const existing={};
+  list.querySelectorAll('select').forEach(sel=>{existing[sel.dataset.day]=sel.value;});
+  const DN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  list.innerHTML=selected.map(d=>{
+    const day=d.dataset.day;
+    const val=existing[day]||'';
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--text2);min-width:30px;font-weight:700">${DN[day]}</span>
+      <select data-day="${day}" style="flex:1;background:var(--bg);border:1.5px solid #ffffff15;border-radius:10px;color:var(--text);padding:8px 10px;font-size:13px;outline:none;-webkit-appearance:none">
+        <option value="">— tipo de treino —</option>
+        ${WORKOUT_TYPES.map(t=>`<option value="${t}"${val===t?' selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function toggleDay(el) { el.classList.toggle('selected'); updateDayTypeSection(); }
 
 function saveStudent(e) {
   e.preventDefault();
   const id = document.getElementById('editId').value;
   const days = Array.from(document.querySelectorAll('.day-pick.selected')).map(d=>parseInt(d.dataset.day));
+  const dayTypes = {};
+  document.querySelectorAll('#dayTypeList select').forEach(sel=>{if(sel.value) dayTypes[sel.dataset.day]=sel.value;});
 
   const classType = document.getElementById('fClassType').value;
   const groupMembers = classType !== 'Individual'
@@ -1754,6 +1802,7 @@ function saveStudent(e) {
     classType: classType,
     groupMembers: groupMembers,
     days: days,
+    dayTypes: dayTypes,
     time: document.getElementById('fTime').value,
     payDay: document.getElementById('fPayDay').value,
     value: document.getElementById('fValue').value,
