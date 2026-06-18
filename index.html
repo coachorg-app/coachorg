@@ -577,6 +577,7 @@ body {
 .header h1 span { background: linear-gradient(135deg, #ff5252, #ff4081); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 </style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2284923541901387" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -810,6 +811,14 @@ body {
     </div>
   </div>
 
+  <div class="section-title" style="margin-top:30px">Minha Conta</div>
+  <div class="card" id="authStatus">
+    <div style="text-align:center;padding:8px 0">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Faça login para ativar o Pro em qualquer celular</div>
+      <button onclick="openLoginModal()" class="btn btn-primary" style="width:auto;padding:10px 28px">Fazer Login / Cadastrar</button>
+    </div>
+  </div>
+
   <div class="section-title" style="margin-top:30px">Sobre</div>
   <div class="card" style="text-align:center">
     <p style="font-size:13px;color:var(--text2)">CoachOrg v3.0 Pro<br>App completo para Personal Trainers<br><span style="font-size:11px">IA + WhatsApp + Agenda + Financeiro</span></p>
@@ -836,6 +845,33 @@ body {
        data-ad-format="auto"
        data-full-width-responsive="true"></ins>
   <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal" onclick="if(event.target===this)closeLoginModal()">
+  <div class="modal" style="max-width:380px;margin:20px auto">
+    <div class="modal-header">
+      <div class="modal-title">Entrar no CoachOrg</div>
+      <button class="modal-close" onclick="closeLoginModal()">×</button>
+    </div>
+    <div style="padding:0 20px 24px">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5">Com conta, seu Pro fica ativo em qualquer dispositivo. Seus dados continuam salvos no celular.</p>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Email</label>
+        <input type="email" id="loginEmail" placeholder="seu@email.com"
+          style="width:100%;background:var(--bg);border:1.5px solid #ffffff20;border-radius:12px;color:var(--text);padding:13px 14px;font-size:15px">
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Senha</label>
+        <input type="password" id="loginPassword" placeholder="Mínimo 6 caracteres"
+          style="width:100%;background:var(--bg);border:1.5px solid #ffffff20;border-radius:12px;color:var(--text);padding:13px 14px;font-size:15px">
+      </div>
+      <div id="loginError" style="color:var(--accent);font-size:12px;margin-bottom:12px;display:none;padding:8px 12px;background:#ff525215;border-radius:8px"></div>
+      <button onclick="handleLogin()" class="btn btn-primary" id="loginBtn" style="width:100%;margin-bottom:10px">Entrar</button>
+      <button onclick="handleSignup()" id="signupBtn"
+        style="width:100%;background:transparent;border:1.5px solid #ffffff20;color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;font-weight:600">Criar conta nova</button>
+    </div>
+  </div>
 </div>
 
 <!-- UPGRADE MODAL -->
@@ -1109,6 +1145,126 @@ let attendance = JSON.parse(localStorage.getItem('pp_attendance') || '{}');
 const FREE_LIMIT = 5;
 let isPro = localStorage.getItem('coachorg_pro') === 'true';
 let currentPayFilter = 'all';
+
+// ==================== SUPABASE AUTH ====================
+const _SBURL = 'https://bjzyrmhwqfapysmucloi.supabase.co';
+const _SBKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqenlybWh3cWZhcHlzbXVjbG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4MDYwMDIsImV4cCI6MjA5NzM4MjAwMn0.OXYfCPbF9FX6gAtg7P065oNpwEolprhzCUlk7QyJdFk';
+let _sb = null;
+let currentUser = null;
+
+function getSB() {
+  if(!_sb && window.supabase) _sb = window.supabase.createClient(_SBURL, _SBKEY);
+  return _sb;
+}
+
+async function initAuth() {
+  const sb = getSB();
+  if(!sb) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if(session?.user) { currentUser = session.user; await checkProStatus(); }
+  updateAuthUI();
+  sb.auth.onAuthStateChange(async (event, session) => {
+    currentUser = session?.user || null;
+    if(currentUser) await checkProStatus();
+    updateAuthUI();
+  });
+}
+
+async function checkProStatus() {
+  const sb = getSB();
+  if(!sb || !currentUser) return;
+  const { data } = await sb.from('profiles').select('is_pro,plan').eq('id', currentUser.id).single();
+  if(data?.is_pro && !isPro) {
+    isPro = true;
+    localStorage.setItem('coachorg_pro', 'true');
+    localStorage.setItem('coachorg_plan', data.plan || 'mensal');
+    updateAdBanner();
+    showToast('✅ Plano Pro ativado via conta!');
+  }
+}
+
+async function signInWithEmail(email, password) {
+  const sb = getSB();
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  return error ? { error: error.message } : { user: data.user };
+}
+
+async function signUpWithEmail(email, password) {
+  const sb = getSB();
+  const { data, error } = await sb.auth.signUp({ email, password });
+  return error ? { error: error.message } : { user: data.user };
+}
+
+async function doSignOut() {
+  const sb = getSB();
+  if(sb) await sb.auth.signOut();
+  currentUser = null;
+  updateAuthUI();
+  showToast('Sessão encerrada');
+}
+
+function updateAuthUI() {
+  const el = document.getElementById('authStatus');
+  if(!el) return;
+  if(currentUser) {
+    const initial = (currentUser.email||'?')[0].toUpperCase();
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex-shrink:0">${initial}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser.email}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${isPro ? '✅ Plano Pro ativo' : '🔓 Plano Free'}</div>
+        </div>
+        <button onclick="doSignOut()" style="background:#ffffff15;border:none;color:var(--text2);padding:7px 13px;border-radius:10px;font-size:12px;cursor:pointer;flex-shrink:0">Sair</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div style="text-align:center;padding:8px 0">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Faça login para ativar o Pro em qualquer celular</div>
+        <button onclick="openLoginModal()" class="btn btn-primary" style="width:auto;padding:10px 28px">Fazer Login / Cadastrar</button>
+      </div>`;
+  }
+}
+
+function openLoginModal() {
+  document.getElementById('loginModal').classList.add('show');
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPassword').value='';
+}
+function closeLoginModal() { document.getElementById('loginModal').classList.remove('show'); }
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  if(!email||!pass) { errEl.textContent='Preencha email e senha'; errEl.style.display='block'; return; }
+  btn.textContent='Entrando...'; btn.disabled=true;
+  const { error } = await signInWithEmail(email, pass);
+  btn.textContent='Entrar'; btn.disabled=false;
+  if(error) { errEl.textContent=error; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  closeLoginModal();
+  showToast('✅ Login realizado!');
+}
+
+async function handleSignup() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('signupBtn');
+  if(!email||!pass) { errEl.textContent='Preencha email e senha'; errEl.style.display='block'; return; }
+  if(pass.length<6) { errEl.textContent='Senha deve ter pelo menos 6 caracteres'; errEl.style.display='block'; return; }
+  btn.textContent='Criando conta...'; btn.disabled=true;
+  const { error } = await signUpWithEmail(email, pass);
+  btn.textContent='Criar conta nova'; btn.disabled=false;
+  if(error) { errEl.textContent=error; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  closeLoginModal();
+  showToast('✅ Conta criada! Verifique seu email para confirmar.');
+}
+// ==================== END SUPABASE AUTH ====================
 let selectedWeekDay = new Date().getDay();
 
 function save() {
@@ -2470,6 +2626,7 @@ function requestPushPermission() {
 
 renderHome();
 updateAdBanner();
+initAuth();
 checkNotifications();
 checkWhatsAppReminders();
 setInterval(()=>{ checkNotifications(); checkWhatsAppReminders(); }, 60000);
