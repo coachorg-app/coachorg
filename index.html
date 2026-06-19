@@ -3509,23 +3509,72 @@ function renderCoachIA() {
     pushBtn.style.opacity = '.5';
   }
 
-  // Render insights
+  // Render insights (heuristics primeiro, IA real em background se Pro)
   const container = document.getElementById('aiInsightsContainer');
   if(!container) return;
-  const insights = generateInsights();
+  const heuristics = generateInsights();
+  renderInsightCards(container, heuristics);
+  if(isPro && students.length > 0) fetchAIInsights(container, heuristics);
+}
+
+function renderInsightCards(container, insights, isAI=false) {
   if(insights.length === 0) {
     container.innerHTML = '<div class="empty-state"><p>Tudo em ordem! Continue assim 💪</p></div>';
     return;
   }
-  container.innerHTML = insights.map(ins=>`
-    <div style="background:var(--card);border-radius:16px;padding:16px;margin-bottom:10px;border-left:4px solid ${ins.color};display:flex;gap:12px;align-items:flex-start">
-      <div style="font-size:28px;line-height:1">${ins.icon}</div>
+  const badge = isAI ? '<div style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,#5b8cff,#9c5bff);color:#fff;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:.5px;margin-bottom:8px">✨ ANÁLISE COM IA</div>' : '';
+  container.innerHTML = badge + insights.map(ins=>`
+    <div style="background:var(--card);border-radius:16px;padding:16px;margin-bottom:10px;border-left:4px solid ${ins.color || 'var(--accent)'};display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:28px;line-height:1">${ins.icon || '💡'}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:700;margin-bottom:4px;color:var(--text)">${ins.title}</div>
         <div style="font-size:12px;color:var(--text2);line-height:1.4">${ins.desc}</div>
         ${ins.action?`<button onclick="${ins.action}" style="margin-top:8px;background:${ins.color}20;color:${ins.color};border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">${ins.actionLabel}</button>`:''}
       </div>
     </div>`).join('');
+}
+
+async function fetchAIInsights(container, fallback) {
+  try {
+    const sb = getSB();
+    if(!sb || !currentUser) return;
+    const summary = buildCoachSummary();
+    const { data, error } = await sb.functions.invoke('coach-ai', {
+      body: { user_id: currentUser.id, summary }
+    });
+    if(error) { console.warn('coach-ai error', error); return; }
+    if(data && Array.isArray(data.insights) && data.insights.length > 0) {
+      renderInsightCards(container, data.insights, true);
+    }
+  } catch(e) { console.warn('coach-ai failed', e); }
+}
+
+function buildCoachSummary() {
+  const today = new Date();
+  const dow = today.getDay();
+  const todayKey = today.toISOString().slice(0,10);
+  const dayCounts = [0,1,2,3,4,5,6].map(i=>({d:i, c:students.filter(s=>s.days&&s.days.includes(i)).length}));
+  const busiest = dayCounts.reduce((a,b)=>b.c>a.c?b:a, dayCounts[0]);
+  const empty = [1,2,3,4,5].filter(i=>dayCounts[i].c===0).map(i=>DAYS_SHORT[i]);
+  const overdue = students.filter(s=>!isPaymentDone(s.id) && daysUntilPayment(s.payDay)<=0);
+  const overdueValue = overdue.reduce((sum,s)=>sum+(parseFloat(s.value)||0),0);
+  const upcoming = students.filter(s=>!isPaymentDone(s.id) && daysUntilPayment(s.payDay)>0 && daysUntilPayment(s.payDay)<=5).length;
+  const revenue = students.filter(s=>isPaymentDone(s.id)).reduce((sum,s)=>sum+(parseFloat(s.value)||0),0);
+  const month = todayKey.slice(0,7);
+  let recentAbsent = 0;
+  Object.keys(attendance).forEach(k=>{ if(k.startsWith(month) && attendance[k]===false) recentAbsent++; });
+  return {
+    total: students.length,
+    active_today: students.filter(s=>s.days&&s.days.includes(dow)).length,
+    overdue_count: overdue.length,
+    overdue_value: overdueValue,
+    upcoming_payments: upcoming,
+    busiest_day: DAYS_SHORT[busiest.d],
+    empty_days: empty,
+    recent_absent: recentAbsent,
+    monthly_revenue: revenue,
+    monthly_goal: monthlyGoal || 0
+  };
 }
 
 function requestPushPermission() {
