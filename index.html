@@ -1039,8 +1039,8 @@ body {
     <div class="card">
       <div style="font-size:13px;font-weight:700;margin-bottom:12px">Acesso & Cortesias</div>
       <button onclick="activateCourtesyAdmin()" class="btn btn-primary" style="margin-bottom:10px">Ativar Vitalício pra mim</button>
-      <button onclick="generateCourtesyLink()" class="btn btn-secondary">Gerar link de cortesia</button>
-      <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5">Gera um link que ativa Vitalício gratuito pra quem clicar. Manda pelo WhatsApp.</div>
+      <button onclick="generateCourtesyLink()" class="btn btn-secondary">Gerar link de cortesia (3 meses)</button>
+      <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5">Gera um link que libera 3 meses de Pro gratuito pra quem clicar. Manda pelo WhatsApp.</div>
     </div>
   </div>
 
@@ -1608,7 +1608,8 @@ const CHECKOUT_LINKS = {
 const PLAN_INFO = {
   mensal: {label:'Pro Mensal', price:'R$9,90/mês', btn:'Começar 30 dias grátis — R$9,90/mês'},
   anual: {label:'Pro Anual', price:'R$79/ano', btn:'Assinar Anual — R$79'},
-  vitalicio: {label:'Vitalício', price:'R$97', btn:'🔥 Garantir Vitalício — R$97'}
+  vitalicio: {label:'Vitalício', price:'R$97', btn:'🔥 Garantir Vitalício — R$97'},
+  cortesia: {label:'Pro Cortesia', price:'3 meses grátis', btn:'Cortesia ativa'}
 };
 
 let selectedPlan = 'anual';
@@ -2971,12 +2972,14 @@ const _ADMIN = 'uanalee1@gmail.com';
 const _VIP_S = 'coachorg2026vip';
 
 function generateCourtesyLink() {
-  const token = btoa(JSON.stringify({p:'vitalicio', s:_VIP_S, ts:Date.now()}));
+  const now = Date.now();
+  const exp = now + 90*24*60*60*1000;
+  const token = btoa(JSON.stringify({p:'cortesia', s:_VIP_S, ts:now, exp}));
   const url = location.origin + location.pathname + '?vip=' + encodeURIComponent(token);
   navigator.clipboard.writeText(url).then(()=>{
-    showToast('Link copiado! Manda pro amigo 🎁');
+    showToast('Link de 3 meses copiado! Manda pro amigo 🎁');
   }).catch(()=>{
-    prompt('Copie o link abaixo:', url);
+    prompt('Copie o link abaixo (válido por 3 meses):', url);
   });
 }
 
@@ -3064,6 +3067,18 @@ async function renderReferralPanel() {
     </div>`;
 }
 
+function checkCourtesyExpiration() {
+  const exp = localStorage.getItem('coachorg_pro_exp');
+  if(!exp) return;
+  if(Date.now() > parseInt(exp,10)) {
+    isPro = false;
+    localStorage.removeItem('coachorg_pro');
+    localStorage.removeItem('coachorg_plan');
+    localStorage.removeItem('coachorg_pro_exp');
+    showToast('Sua cortesia de 3 meses acabou. Assine Pro pra continuar 🙏');
+  }
+}
+
 function checkCourtesyURL() {
   try {
     // Salvar código de indicação se veio por link
@@ -3074,12 +3089,17 @@ function checkCourtesyURL() {
     if(!param) return;
     const obj = JSON.parse(atob(decodeURIComponent(param)));
     if(obj.s !== _VIP_S) return;
+    if(obj.exp && Date.now() > obj.exp) { showToast('Esse link de cortesia expirou. Pede um novo 🙏'); return; }
     if(isPro) { showToast('Você já tem acesso Pro!'); return; }
     isPro = true;
     localStorage.setItem('coachorg_pro','true');
-    localStorage.setItem('coachorg_plan', obj.p || 'vitalicio');
+    localStorage.setItem('coachorg_plan', obj.p || 'cortesia');
+    if(obj.exp) localStorage.setItem('coachorg_pro_exp', String(obj.exp));
     updateAdBanner();
-    showToast('🎁 Acesso Vitalício ativado! Bem-vindo!');
+    const msg = obj.p === 'cortesia'
+      ? '🎁 Cortesia de 3 meses ativada! Bem-vindo!'
+      : '🎁 Acesso ativado! Bem-vindo!';
+    showToast(msg);
     history.replaceState({}, '', location.pathname);
     setTimeout(()=>{ renderHome(); renderCoachIA(); }, 400);
   } catch(e) {}
@@ -3159,6 +3179,7 @@ function requestPushPermission() {
 renderHome();
 updateAdBanner();
 initAuth();
+checkCourtesyExpiration();
 checkCourtesyURL();
 checkPasswordResetURL();
 checkNotifications();
