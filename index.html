@@ -1071,8 +1071,8 @@ body {
         </div>
       </div>
       <div class="form-group">
-        <label>Horário do Treino</label>
-        <input type="time" id="fTime" value="06:00">
+        <label>Horário padrão <span style="font-size:11px;color:var(--text2);font-weight:400">(aplicado a todos os dias)</span></label>
+        <input type="time" id="fTime" value="06:00" oninput="updateDayTypeSection()">
       </div>
       <div class="form-group">
         <label>Dia do Pagamento</label>
@@ -1422,7 +1422,8 @@ function renderHome() {
   const dom = today.getDate();
 
   const todayStudents = students.filter(s=>s.days && s.days.includes(dow));
-  todayStudents.sort((a,b)=>(a.time||'06:00').localeCompare(b.time||'06:00'));
+  const getTodayTime = s => s.times?.[String(dow)] || s.time || '06:00';
+  todayStudents.sort((a,b)=>getTodayTime(a).localeCompare(getTodayTime(b)));
 
   document.getElementById('totalStudents').textContent = students.length;
   document.getElementById('todayCount').textContent = todayStudents.length;
@@ -1502,7 +1503,7 @@ function renderHome() {
         countdown = `<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:#ffffff10;color:var(--text2);font-weight:600">em ${h}h${m>0?m+'min':''}</span>`;
       }
       html += `<div class="schedule-item">
-        <div class="schedule-time">${s.time||'06:00'}</div>
+        <div class="schedule-time">${getTodayTime(s)}</div>
         <div style="flex:1">
           <div class="schedule-name">${s.name}</div>
           <div style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -1652,7 +1653,8 @@ function renderSchedule() {
   document.getElementById('weekHeader').innerHTML = html;
 
   const dayStudents = students.filter(s=>s.days && s.days.includes(selectedWeekDay));
-  dayStudents.sort((a,b)=>(a.time||'06:00').localeCompare(b.time||'06:00'));
+  const getTime = (s,d) => s.times?.[String(d)] || s.time || '06:00';
+  dayStudents.sort((a,b)=>getTime(a,selectedWeekDay).localeCompare(getTime(b,selectedWeekDay)));
 
   html = '';
   if(dayStudents.length === 0) {
@@ -1660,7 +1662,7 @@ function renderSchedule() {
   } else {
     dayStudents.forEach(s=>{
       html += `<div class="schedule-item" onclick="showStudentDetail('${s.id}')">
-        <div class="schedule-time">${s.time||'06:00'}</div>
+        <div class="schedule-time">${getTime(s,selectedWeekDay)}</div>
         <div style="flex:1">
           <div class="schedule-name">${s.name}</div>
           <div style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px;flex-wrap:wrap">${s.classType&&s.classType!=='Individual'?'👥 '+s.classType+' · ':''}${s.goal||''}${s.local?' · 📍'+s.local:''} ${workoutChip(s.dayTypes&&s.dayTypes[selectedWeekDay])}</div>
@@ -2100,6 +2102,12 @@ function editStudent(id) {
       if(v) sel.value = v;
     });
   }
+  if(s.times) {
+    document.querySelectorAll('#dayTypeList input[type="time"]').forEach(inp=>{
+      const v = s.times[inp.dataset.day] || s.times[parseInt(inp.dataset.day)];
+      if(v) inp.value = v;
+    });
+  }
   onClassTypeChange(s.groupMembers || []);
   document.getElementById('modalStudent').classList.add('show');
 }
@@ -2123,18 +2131,22 @@ function updateDayTypeSection() {
   if(!section) return;
   if(selected.length===0){section.style.display='none';list.innerHTML='';return;}
   section.style.display='';
-  const existing={};
+  const defaultTime = (document.getElementById('fTime')||{}).value || '06:00';
+  const existing={}, existingTimes={};
   list.querySelectorAll('select').forEach(sel=>{existing[sel.dataset.day]=sel.value;});
+  list.querySelectorAll('input[type="time"]').forEach(inp=>{existingTimes[inp.dataset.day]=inp.value;});
   const DN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   list.innerHTML=selected.map(d=>{
     const day=d.dataset.day;
     const val=existing[day]||'';
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    const t=existingTimes[day]||defaultTime;
+    return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
       <span style="font-size:12px;color:var(--text2);min-width:30px;font-weight:700">${DN[day]}</span>
-      <select data-day="${day}" style="flex:1;background:var(--bg);border:1.5px solid #ffffff15;border-radius:10px;color:var(--text);padding:8px 10px;font-size:13px;outline:none;-webkit-appearance:none">
-        <option value="">— tipo de treino —</option>
-        ${WORKOUT_TYPES.map(t=>`<option value="${t}"${val===t?' selected':''}>${t}</option>`).join('')}
+      <select data-day="${day}" style="flex:1;background:var(--bg);border:1.5px solid #ffffff15;border-radius:10px;color:var(--text);padding:8px 8px;font-size:12px;outline:none;-webkit-appearance:none">
+        <option value="">— tipo —</option>
+        ${WORKOUT_TYPES.map(tp=>`<option value="${tp}"${val===tp?' selected':''}>${tp}</option>`).join('')}
       </select>
+      <input type="time" data-day="${day}" value="${t}" style="background:var(--bg);border:1.5px solid #ffffff15;border-radius:10px;color:var(--text);padding:8px 8px;font-size:12px;outline:none;width:100px">
     </div>`;
   }).join('');
 }
@@ -2147,6 +2159,8 @@ function saveStudent(e) {
   const days = Array.from(document.querySelectorAll('.day-pick.selected')).map(d=>parseInt(d.dataset.day));
   const dayTypes = {};
   document.querySelectorAll('#dayTypeList select').forEach(sel=>{if(sel.value) dayTypes[sel.dataset.day]=sel.value;});
+  const times = {};
+  document.querySelectorAll('#dayTypeList input[type="time"]').forEach(inp=>{if(inp.value) times[inp.dataset.day]=inp.value;});
 
   const classType = document.getElementById('fClassType').value;
   const groupMembers = classType !== 'Individual'
@@ -2163,6 +2177,7 @@ function saveStudent(e) {
     groupMembers: groupMembers,
     days: days,
     dayTypes: dayTypes,
+    times: times,
     time: document.getElementById('fTime').value,
     payDay: document.getElementById('fPayDay').value,
     value: document.getElementById('fValue').value,
