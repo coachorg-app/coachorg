@@ -1477,7 +1477,8 @@ const COLORS = ['#ff5252','#0f3460','#533483','#00c853','#ff6d00','#6c63ff','#00
 let students = JSON.parse(localStorage.getItem('pp_students') || '[]');
 let settings = JSON.parse(localStorage.getItem('pp_settings') || '{"payNotif":true,"trainNotif":true,"whatsappNotif":true,"defaultTime":"06:00","whatsappMsg":"Oi {nome}! Tudo bem? Seu treino está marcado pra hoje às {hora}. Você vem? Me confirma aqui pra eu reservar seu horário! 💪","whatsappPayMsg":"Oi {nome}! Tudo bem? Passando pra lembrar que o pagamento da mensalidade (R${valor}) vence dia {dia}. Qualquer dúvida me chama! 😊","whatsappHoursBefore":2}');
 let attendance = JSON.parse(localStorage.getItem('pp_attendance') || '{}');
-const FREE_LIMIT = 3;
+const BETA_MODE = true;
+const FREE_LIMIT = BETA_MODE ? 999 : 3;
 let isPro = localStorage.getItem('coachorg_pro') === 'true';
 let currentPayFilter = 'all';
 
@@ -1612,7 +1613,7 @@ function updateAuthUI() {
         <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex-shrink:0">${initial}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser.email}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">${isPro ? '✅ ' + (PLAN_INFO[localStorage.getItem('coachorg_plan')||'mensal']?.label||'Pro') + ' ativo' : '🔓 Plano Free'}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${isPro ? '✅ ' + (PLAN_INFO[localStorage.getItem('coachorg_plan')||'mensal']?.label||'Pro') + ' ativo' : (BETA_MODE ? '🚧 Acesso BETA — tudo liberado' : '🔓 Plano Free')}</div>
         </div>
         <button onclick="doSignOut()" style="background:#ffffff15;border:none;color:var(--text2);padding:7px 13px;border-radius:10px;font-size:12px;cursor:pointer;flex-shrink:0">Sair</button>
       </div>`;
@@ -1695,12 +1696,17 @@ function updateAdBanner() {
   const banner = document.getElementById('adBanner');
   const fab = document.getElementById('fab');
   if(!banner) return;
-  banner.classList.toggle('hidden', isPro);
-  document.body.style.paddingBottom = isPro ? '80px' : '145px';
-  if(fab) fab.style.bottom = isPro ? '90px' : '155px';
+  const hideAds = isPro || BETA_MODE;
+  banner.classList.toggle('hidden', hideAds);
+  document.body.style.paddingBottom = hideAds ? '80px' : '145px';
+  if(fab) fab.style.bottom = hideAds ? '90px' : '155px';
 }
 
 function openUpgrade() {
+  if(BETA_MODE) {
+    showToast('🚧 App em fase BETA — todas as funcionalidades já estão liberadas pra você!');
+    return;
+  }
   document.getElementById('upgradeModal').classList.add('show');
   selectPlan('anual');
   updatePromoCounter();
@@ -2118,7 +2124,9 @@ function renderHome() {
   const _planLabel = PLAN_INFO[_plan]?.label || 'Pro';
   const planPill = isPro
     ? `<span style="background:#4ade8020;color:#4ade80;border:1px solid #4ade8040;border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;margin-left:6px;letter-spacing:.3px">${_planLabel} ✦</span>`
-    : `<span style="background:#f8717120;color:#f87171;border:1px solid #f8717140;border-radius:20px;font-size:10px;font-weight:600;padding:1px 7px;margin-left:6px">Free</span>`;
+    : BETA_MODE
+      ? `<span style="background:#5b8cff25;color:#5b8cff;border:1px solid #5b8cff50;border-radius:20px;font-size:10px;font-weight:800;padding:1px 7px;margin-left:6px;letter-spacing:.5px">🚧 BETA</span>`
+      : `<span style="background:#f8717120;color:#f87171;border:1px solid #f8717140;border-radius:20px;font-size:10px;font-weight:600;padding:1px 7px;margin-left:6px">Free</span>`;
   document.getElementById('headerSub').innerHTML = formatDateBR(today) + ' · ' + DAYS_SHORT[dow] + planPill;
 
   // Overdue payments banner
@@ -2270,18 +2278,22 @@ function renderStudents() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const filtered = students.filter(s=>s.name.toLowerCase().includes(q));
 
-  // Banner de limite grátis
+  // Banner de modo BETA (substitui o banner de limite)
   const limitBanner = document.getElementById('freeLimitBanner');
   if(limitBanner) {
-    if(!isPro) {
+    if(BETA_MODE && !isPro) {
+      limitBanner.innerHTML = `<div style="background:linear-gradient(90deg,#5b8cff20,#9c5bff20);border:1.5px solid #5b8cff40;border-radius:12px;padding:11px 14px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:10px">
+        🚧 <span><strong style="color:#5b8cff">App em fase BETA</strong> — todas as funcionalidades liberadas pra você testar. Ajude com seu feedback 🙏</span>
+      </div>`;
+    } else if(!BETA_MODE && !isPro) {
       const remaining = FREE_LIMIT - students.length;
       if(remaining <= 2 && remaining > 0) {
         limitBanner.innerHTML = `<div style="background:#ff525215;border:1px solid #ff525240;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:10px">
-          ⚠️ <span>Você tem <strong style="color:var(--accent)">${remaining} vaga${remaining>1?'s':''}</strong> no plano grátis — cada aluno vale ~R$300/mês. <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-weight:700">Desbloquear ilimitado →</span></span>
+          ⚠️ <span>Você tem <strong style="color:var(--accent)">${remaining} vaga${remaining>1?'s':''}</strong> no plano grátis. <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-weight:700">Desbloquear ilimitado →</span></span>
         </div>`;
       } else if(remaining <= 0) {
         limitBanner.innerHTML = `<div style="background:#ff525215;border:1px solid #ff525240;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:10px">
-          🔒 <span>Limite de 3 alunos atingido. <strong>Cada novo aluno = ~R$300/mês a mais no seu bolso.</strong> <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-weight:700">Ver planos — Anual R$99 (45% off) →</span></span>
+          🔒 <span>Limite atingido. <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-weight:700">Ver planos →</span></span>
         </div>`;
       } else { limitBanner.innerHTML = ''; }
     } else { limitBanner.innerHTML = ''; }
