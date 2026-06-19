@@ -1075,7 +1075,10 @@ body {
       <div id="loginError" style="color:var(--accent);font-size:12px;margin-bottom:12px;display:none;padding:8px 12px;background:#ff525215;border-radius:8px"></div>
       <button onclick="handleLogin()" class="btn btn-primary" id="loginBtn" style="width:100%;margin-bottom:10px">Entrar</button>
       <button onclick="handleSignup()" id="signupBtn"
-        style="width:100%;background:transparent;border:1.5px solid #ffffff20;color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;font-weight:600">Criar conta nova</button>
+        style="width:100%;background:transparent;border:1.5px solid #ffffff20;color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;font-weight:600;margin-bottom:14px">Criar conta nova</button>
+      <div style="text-align:center">
+        <a href="#" onclick="event.preventDefault();handleForgotPassword()" style="font-size:12px;color:var(--text2);text-decoration:underline;cursor:pointer">Esqueci minha senha</a>
+      </div>
     </div>
   </div>
 </div>
@@ -1355,7 +1358,7 @@ const COLORS = ['#ff5252','#0f3460','#533483','#00c853','#ff6d00','#6c63ff','#00
 let students = JSON.parse(localStorage.getItem('pp_students') || '[]');
 let settings = JSON.parse(localStorage.getItem('pp_settings') || '{"payNotif":true,"trainNotif":true,"whatsappNotif":true,"defaultTime":"06:00","whatsappMsg":"Oi {nome}! Tudo bem? Seu treino está marcado pra hoje às {hora}. Você vem? Me confirma aqui pra eu reservar seu horário! 💪","whatsappPayMsg":"Oi {nome}! Tudo bem? Passando pra lembrar que o pagamento da mensalidade (R${valor}) vence dia {dia}. Qualquer dúvida me chama! 😊","whatsappHoursBefore":2}');
 let attendance = JSON.parse(localStorage.getItem('pp_attendance') || '{}');
-const FREE_LIMIT = 5;
+const FREE_LIMIT = 3;
 let isPro = localStorage.getItem('coachorg_pro') === 'true';
 let currentPayFilter = 'all';
 
@@ -1418,6 +1421,49 @@ async function signUpWithEmail(email, password) {
   const sb = getSB();
   const { data, error } = await sb.auth.signUp({ email, password });
   return error ? { error: error.message } : { user: data.user };
+}
+
+async function handleForgotPassword() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const errEl = document.getElementById('loginError');
+  if(!email) {
+    errEl.textContent = 'Digite seu email no campo acima primeiro';
+    errEl.style.display = 'block';
+    return;
+  }
+  const sb = getSB();
+  if(!sb) { errEl.textContent = 'Erro de conexão'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname + '?reset=1'
+  });
+  if(error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  closeLoginModal();
+  showToast('📧 Email de reset enviado! Verifique sua caixa de entrada.');
+}
+
+async function checkPasswordResetURL() {
+  const params = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace('#',''));
+  if(params.get('reset')==='1' || hash.get('type')==='recovery') {
+    setTimeout(()=>{
+      const newPass = prompt('🔑 Digite sua nova senha (mínimo 6 caracteres):');
+      if(!newPass || newPass.length<6) {
+        alert('Senha muito curta. Tente o link de reset de novo.');
+        return;
+      }
+      const sb = getSB();
+      sb.auth.updateUser({ password: newPass }).then(({error})=>{
+        if(error) { alert('Erro: '+error.message); return; }
+        showToast('✅ Senha alterada! Faça login com a nova senha.');
+        history.replaceState({}, '', window.location.pathname);
+      });
+    }, 1000);
+  }
 }
 
 async function doSignOut() {
@@ -1835,11 +1881,11 @@ function renderStudents() {
       const remaining = FREE_LIMIT - students.length;
       if(remaining <= 2 && remaining > 0) {
         limitBanner.innerHTML = `<div style="background:#ff525215;border:1px solid #ff525240;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:10px">
-          ⚠️ <span>Você tem <strong style="color:var(--accent)">${remaining} vaga${remaining>1?'s':''}</strong> no plano grátis. <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer">Upgrade para ilimitado</span></span>
+          ⚠️ <span>Você tem <strong style="color:var(--accent)">${remaining} vaga${remaining>1?'s':''}</strong> no plano grátis — cada aluno vale ~R$300/mês. <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-weight:700">Desbloquear ilimitado →</span></span>
         </div>`;
       } else if(remaining <= 0) {
         limitBanner.innerHTML = `<div style="background:#ff525215;border:1px solid #ff525240;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:10px">
-          🔒 <span>Limite atingido. <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer">Faça upgrade Pro</span> para adicionar mais alunos</span>
+          🔒 <span>Limite de 3 alunos atingido. <strong>Cada novo aluno = ~R$300/mês a mais no seu bolso.</strong> <span onclick="openUpgrade()" style="color:var(--accent);text-decoration:underline;cursor:pointer;font-weight:700">Ver planos — a partir de R$9,90 →</span></span>
         </div>`;
       } else { limitBanner.innerHTML = ''; }
     } else { limitBanner.innerHTML = ''; }
@@ -3025,6 +3071,7 @@ renderHome();
 updateAdBanner();
 initAuth();
 checkCourtesyURL();
+checkPasswordResetURL();
 checkNotifications();
 checkWhatsAppReminders();
 setInterval(()=>{ checkNotifications(); checkWhatsAppReminders(); }, 60000);

@@ -1,6 +1,7 @@
-const CACHE = 'coachorg-v14';
+const CACHE = 'coachorg-v15';
 const ASSETS = [
   './index.html',
+  './precos.html',
   './manifest.json',
   './apple-touch-icon.png',
   './favicon-32x32.png',
