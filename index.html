@@ -864,6 +864,7 @@ body {
   </div>
   <div id="overdueBanner"></div>
   <div id="birthdayBanner"></div>
+  <div id="workoutExpBanner"></div>
   <div id="waAllBtn"></div>
 
   <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
@@ -1376,6 +1377,18 @@ body {
       <div class="form-group">
         <label>Exercícios (um por linha)</label>
         <textarea id="wExercises" style="min-height:150px" placeholder="Supino reto 4x10&#10;Crucifixo 3x12&#10;Triceps corda 3x15"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Validade do treino <span style="font-size:11px;color:var(--text2);font-weight:400">(quando trocar pra progressão)</span></label>
+        <select id="wWeeks" style="width:100%">
+          <option value="4">4 semanas</option>
+          <option value="6">6 semanas</option>
+          <option value="8" selected>8 semanas (recomendado)</option>
+          <option value="10">10 semanas</option>
+          <option value="12">12 semanas</option>
+          <option value="0">Sem validade</option>
+        </select>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px">⏰ Você recebe alerta 3 dias antes pra trocar o treino</div>
       </div>
       <button type="submit" class="btn btn-primary">Salvar Treino</button>
       <button type="button" class="btn btn-secondary" style="margin-top:8px" onclick="closeWorkoutModal()">Cancelar</button>
@@ -1927,6 +1940,71 @@ async function fireSessionEndNotification(student) {
   } catch(e) {}
 }
 
+function workoutExpirationInfo(w) {
+  if(!w || !w.weeks || w.weeks <= 0 || !w.startDate) return null;
+  const start = new Date(w.startDate + 'T00:00:00');
+  const expMs = start.getTime() + w.weeks * 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const daysLeft = Math.ceil((expMs - now) / (24*60*60*1000));
+  if(daysLeft > 7) return { icon:'📅', text:`Válido por mais ${daysLeft} dias`, color:'var(--text2)', bg:'#ffffff08' };
+  if(daysLeft > 0) return { icon:'⏰', text:`Vence em ${daysLeft} dia${daysLeft>1?'s':''}`, color:'#ffab00', bg:'#ffab0015' };
+  if(daysLeft === 0) return { icon:'⚠️', text:'Vence HOJE', color:'var(--accent)', bg:'#ff525215' };
+  return { icon:'🔴', text:`Vencido há ${Math.abs(daysLeft)} dia${Math.abs(daysLeft)>1?'s':''}`, color:'var(--accent)', bg:'#ff525215' };
+}
+
+async function notifyExpiringWorkoutsOnce() {
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const today = new Date().toISOString().slice(0,10);
+  if(localStorage.getItem('coachorg_workout_notif_day') === today) return;
+  const list = getExpiringWorkouts();
+  if(list.length === 0) return;
+  localStorage.setItem('coachorg_workout_notif_day', today);
+  const title = `🏋️ ${list.length} treino${list.length>1?'s':''} pra renovar`;
+  const names = list.slice(0,3).map(x=>x.student.name.split(' ')[0]).join(', ');
+  const body = `${names}${list.length>3?' e mais '+(list.length-3):''} — toca pra ver`;
+  const icon = './icons/icon-192x192.png';
+  try {
+    if('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg) { reg.showNotification(title, { body, icon, badge: icon, tag: 'workout-renew', vibrate: [200,100,200] }); return; }
+    }
+    new Notification(title, { body, icon, tag: 'workout-renew' });
+  } catch(e) {}
+}
+
+function getExpiringWorkouts() {
+  const result = [];
+  students.forEach(s => {
+    (s.workouts || []).forEach((w, i) => {
+      const info = workoutExpirationInfo(w);
+      if(info && (info.text.startsWith('Vence') || info.text.startsWith('Vencido'))) {
+        result.push({ student: s, workout: w, idx: i, info });
+      }
+    });
+  });
+  return result.sort((a,b) => a.info.text.localeCompare(b.info.text));
+}
+
+function renderWorkoutExpirationBanner() {
+  const banner = document.getElementById('workoutExpBanner');
+  if(!banner) return;
+  const list = getExpiringWorkouts();
+  if(list.length === 0) { banner.innerHTML = ''; return; }
+  banner.innerHTML = `<div style="background:#ffab0015;border:1.5px solid #ffab0040;border-radius:14px;padding:12px 14px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:800;color:#ffab00;margin-bottom:8px">🏋️ ${list.length} treino${list.length>1?'s':''} pra renovar</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${list.slice(0,3).map(x=>`<div onclick="showStudentDetail('${x.student.id}')" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:10px;padding:8px 12px;cursor:pointer;border:1px solid var(--border)">
+        <div style="min-width:0;overflow:hidden">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${x.student.name}</div>
+          <div style="font-size:11px;color:var(--text2)">${x.workout.name}</div>
+        </div>
+        <div style="color:${x.info.color};font-size:11px;font-weight:700;flex-shrink:0;margin-left:8px">${x.info.icon} ${x.info.text}</div>
+      </div>`).join('')}
+      ${list.length>3?`<div style="text-align:center;font-size:11px;color:var(--text2);margin-top:4px">+ ${list.length-3} mais</div>`:''}
+    </div>
+  </div>`;
+}
+
 function renderBirthdayBanner() {
   const banner = document.getElementById('birthdayBanner');
   if(!banner) return;
@@ -1965,7 +2043,9 @@ function renderHome() {
   document.getElementById('todayCount').textContent = todayStudents.length;
   renderTasks();
   renderBirthdayBanner();
+  renderWorkoutExpirationBanner();
   scheduleSessionEndNotifications();
+  notifyExpiringWorkoutsOnce();
 
   const pending = students.filter(s=>!isPaymentDone(s.id));
   document.getElementById('pendingPayments').textContent = pending.length;
@@ -2529,10 +2609,15 @@ function showStudentDetail(id) {
   let workoutsHtml = '';
   if(s.workouts && s.workouts.length > 0) {
     s.workouts.forEach((w,i)=>{
+      const expInfo = workoutExpirationInfo(w);
+      const expBadge = expInfo ? `<div style="display:inline-flex;align-items:center;gap:5px;background:${expInfo.bg};color:${expInfo.color};border:1px solid ${expInfo.color}40;border-radius:20px;padding:3px 9px;font-size:10px;font-weight:700;margin-top:6px">${expInfo.icon} ${expInfo.text}</div>` : '';
       workoutsHtml += `<div class="workout-card">
         <div class="workout-header">
-          <div class="workout-title">${w.name}</div>
-          <div style="display:flex;gap:6px">
+          <div>
+            <div class="workout-title">${w.name}</div>
+            ${expBadge}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
             ${s.phone?`<button class="wa-btn wa-btn-small" style="padding:4px 8px;font-size:10px" onclick="sendWorkoutWhatsApp('${s.id}',${i})">${waIcon()} Enviar</button>`:''}
             <button class="detail-action-btn" style="padding:4px 10px;font-size:11px" onclick="editWorkout('${s.id}',${i})">Editar</button>
             <button class="detail-action-btn" style="padding:4px 10px;font-size:11px;color:var(--accent);border-color:var(--accent)" onclick="deleteWorkout('${s.id}',${i})">X</button>
@@ -2966,6 +3051,7 @@ function openAddWorkout(studentId) {
   document.getElementById('wIndex').value = -1;
   document.getElementById('wName').value = '';
   document.getElementById('wExercises').value = '';
+  const wk = document.getElementById('wWeeks'); if(wk) wk.value = '8';
   document.getElementById('modalWorkout').classList.add('show');
 }
 
@@ -2976,6 +3062,7 @@ function editWorkout(studentId, idx) {
   document.getElementById('wIndex').value = idx;
   document.getElementById('wName').value = s.workouts[idx].name;
   document.getElementById('wExercises').value = s.workouts[idx].exercises;
+  const wk = document.getElementById('wWeeks'); if(wk) wk.value = String(s.workouts[idx].weeks ?? 8);
   document.getElementById('modalWorkout').classList.add('show');
 }
 
@@ -2987,9 +3074,13 @@ function saveWorkout(e) {
   if(!s) return;
   if(!s.workouts) s.workouts = [];
 
+  const weeksVal = parseInt(document.getElementById('wWeeks').value || '8', 10);
+  const existing = idx >= 0 ? s.workouts[idx] : null;
   const w = {
     name: document.getElementById('wName').value.trim(),
     exercises: document.getElementById('wExercises').value.trim(),
+    weeks: weeksVal,
+    startDate: existing?.startDate || new Date().toISOString().slice(0,10)
   };
 
   if(idx >= 0) s.workouts[idx] = w;
