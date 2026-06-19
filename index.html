@@ -819,6 +819,17 @@ body {
     </div>
   </div>
 
+  <!-- ADMIN PANEL — só aparece pra uanalee1@gmail.com -->
+  <div id="adminPanel" style="display:none">
+    <div class="section-title" style="margin-top:30px">Admin</div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px">Acesso & Cortesias</div>
+      <button onclick="activateCourtesyAdmin()" class="btn btn-primary" style="margin-bottom:10px">Ativar Vitalício pra mim</button>
+      <button onclick="generateCourtesyLink()" class="btn btn-secondary">Gerar link de cortesia</button>
+      <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5">Gera um link que ativa Vitalício gratuito pra quem clicar. Manda pelo WhatsApp.</div>
+    </div>
+  </div>
+
   <div class="section-title" style="margin-top:30px">Sobre</div>
   <div class="card" style="text-align:center">
     <p style="font-size:13px;color:var(--text2)">CoachOrg v3.0 Pro<br>App completo para Personal Trainers<br><span style="font-size:11px">IA + WhatsApp + Agenda + Financeiro</span></p>
@@ -1220,7 +1231,7 @@ function updateAuthUI() {
         <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex-shrink:0">${initial}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser.email}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">${isPro ? '✅ Plano Pro ativo' : '🔓 Plano Free'}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${isPro ? '✅ ' + (PLAN_INFO[localStorage.getItem('coachorg_plan')||'mensal']?.label||'Pro') + ' ativo' : '🔓 Plano Free'}</div>
         </div>
         <button onclick="doSignOut()" style="background:#ffffff15;border:none;color:var(--text2);padding:7px 13px;border-radius:10px;font-size:12px;cursor:pointer;flex-shrink:0">Sair</button>
       </div>`;
@@ -1435,8 +1446,10 @@ function renderHome() {
   document.getElementById('monthRevenue').textContent = 'R$'+revenue.toFixed(0);
 
   const todayKey = today.toISOString().slice(0,10);
+  const _plan = localStorage.getItem('coachorg_plan') || 'mensal';
+  const _planLabel = PLAN_INFO[_plan]?.label || 'Pro';
   const planPill = isPro
-    ? `<span style="background:#4ade8020;color:#4ade80;border:1px solid #4ade8040;border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;margin-left:6px;letter-spacing:.3px">Pro ✦</span>`
+    ? `<span style="background:#4ade8020;color:#4ade80;border:1px solid #4ade8040;border-radius:20px;font-size:10px;font-weight:700;padding:1px 7px;margin-left:6px;letter-spacing:.3px">${_planLabel} ✦</span>`
     : `<span style="background:#f8717120;color:#f87171;border:1px solid #f8717140;border-radius:20px;font-size:10px;font-weight:600;padding:1px 7px;margin-left:6px">Free</span>`;
   document.getElementById('headerSub').innerHTML = formatDateBR(today) + ' · ' + DAYS_SHORT[dow] + planPill;
 
@@ -2586,7 +2599,57 @@ function generateInsights() {
   return insights.sort((a,b)=>b.priority-a.priority);
 }
 
+const _ADMIN = 'uanalee1@gmail.com';
+const _VIP_S = 'coachorg2026vip';
+
+function generateCourtesyLink() {
+  const token = btoa(JSON.stringify({p:'vitalicio', s:_VIP_S, ts:Date.now()}));
+  const url = location.origin + location.pathname + '?vip=' + encodeURIComponent(token);
+  navigator.clipboard.writeText(url).then(()=>{
+    showToast('Link copiado! Manda pro amigo 🎁');
+  }).catch(()=>{
+    prompt('Copie o link abaixo:', url);
+  });
+}
+
+function activateCourtesyAdmin() {
+  isPro = true;
+  localStorage.setItem('coachorg_pro','true');
+  localStorage.setItem('coachorg_plan','vitalicio');
+  updateAdBanner();
+  showToast('✅ Vitalício ativado pra você!');
+  renderCoachIA();
+  renderHome();
+}
+
+function checkCourtesyURL() {
+  try {
+    const param = new URLSearchParams(location.search).get('vip');
+    if(!param) return;
+    const obj = JSON.parse(atob(decodeURIComponent(param)));
+    if(obj.s !== _VIP_S) return;
+    if(isPro) { showToast('Você já tem acesso Pro!'); return; }
+    isPro = true;
+    localStorage.setItem('coachorg_pro','true');
+    localStorage.setItem('coachorg_plan', obj.p || 'vitalicio');
+    updateAdBanner();
+    showToast('🎁 Acesso Vitalício ativado! Bem-vindo!');
+    history.replaceState({}, '', location.pathname);
+    setTimeout(()=>{ renderHome(); renderCoachIA(); }, 400);
+  } catch(e) {}
+}
+
 function renderCoachIA() {
+  // Admin panel (só pra Uaná)
+  const adminEl = document.getElementById('adminPanel');
+  if(adminEl) {
+    if(currentUser?.email === _ADMIN) {
+      adminEl.style.display = '';
+    } else {
+      adminEl.style.display = 'none';
+    }
+  }
+
   // Populate goal
   const inp = document.getElementById('monthlyGoalInput');
   if(inp) inp.value = monthlyGoal || '';
@@ -2647,6 +2710,7 @@ function requestPushPermission() {
 renderHome();
 updateAdBanner();
 initAuth();
+checkCourtesyURL();
 checkNotifications();
 checkWhatsAppReminders();
 setInterval(()=>{ checkNotifications(); checkWhatsAppReminders(); }, 60000);
