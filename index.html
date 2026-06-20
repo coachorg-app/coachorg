@@ -609,6 +609,40 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
   cursor:pointer; padding:0; transition:.15s;
 }
 .share-color-btn.active { border-color:#fff; box-shadow:0 0 0 2px var(--accent); }
+
+/* ===== ONBOARDING ===== */
+#onboardingOverlay {
+  position:fixed; inset:0; z-index:99999;
+  background:#0a0a14;
+  display:flex; flex-direction:column;
+  overflow:hidden; touch-action:pan-y;
+}
+.ob-slides {
+  flex:1; display:flex; transition:transform .35s cubic-bezier(.4,0,.2,1);
+}
+.ob-slide {
+  min-width:100%; padding:0 28px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center; gap:0;
+}
+.ob-emoji { font-size:80px; line-height:1; margin-bottom:22px; }
+.ob-title { font-size:24px; font-weight:900; color:#fff; letter-spacing:-.4px; margin-bottom:12px; line-height:1.2; }
+.ob-desc { font-size:14px; color:#aaa; line-height:1.6; max-width:320px; }
+.ob-highlight { color:#ff5252; font-weight:700; }
+.ob-dots { display:flex; gap:7px; justify-content:center; padding:18px 0; }
+.ob-dot { width:8px; height:8px; border-radius:50%; background:#333; transition:.25s; }
+.ob-dot.active { background:#ff5252; width:22px; border-radius:4px; }
+.ob-footer { padding:0 24px 36px; display:flex; flex-direction:column; gap:10px; }
+.ob-btn-next {
+  width:100%; padding:16px; border:none; border-radius:14px;
+  background:linear-gradient(90deg,#ff5252,#ff1744);
+  color:#fff; font-size:16px; font-weight:900; cursor:pointer;
+  letter-spacing:.2px;
+}
+.ob-btn-skip {
+  background:none; border:none; color:#555; font-size:13px; cursor:pointer; padding:4px;
+}
 .toggle {
   width:48px; height:28px; border-radius:14px; background:#ffffff20;
   position:relative; cursor:pointer; transition:.2s; border:none;
@@ -5790,6 +5824,107 @@ async function shareBlob(blob, filename, title, text) {
   showToast('📥 Imagem baixada — compartilhe manualmente');
 }
 
+// ===== ONBOARDING =====
+const _OB_SLIDES = [
+  {
+    emoji: '👋',
+    title: 'Bem-vindo ao CoachOrg',
+    desc: 'O app feito pra <span class="ob-highlight">personal trainer de verdade</span>. Organize alunos, treinos e pagamentos num só lugar.'
+  },
+  {
+    emoji: '📅',
+    title: 'Agenda que funciona',
+    desc: 'Veja seus alunos do dia, controle presenças e receba alertos de pagamento. <span class="ob-highlight">Tudo no bolso.</span>'
+  },
+  {
+    emoji: '🤖',
+    title: 'Personal PhD — IA de treino',
+    desc: 'Valida treinos com base na ciência, detecta erros de montagem e <span class="ob-highlight">sugere correções em segundos.</span>'
+  },
+  {
+    emoji: '📸',
+    title: 'Análise Postural por foto',
+    desc: 'Fotografa a postura do aluno e a IA identifica <span class="ob-highlight">assimetrias, compensações e riscos</span> de lesão.'
+  },
+  {
+    emoji: '💰',
+    title: 'Financeiro sob controle',
+    desc: 'Faturado, projetado, inadimplência e metas mensais. Tudo em <span class="ob-highlight">30 segundos por mês.</span> Bora começar?'
+  }
+];
+
+let _obCurrent = 0;
+let _obTouchStartX = 0;
+
+function checkOnboarding() {
+  if(localStorage.getItem('coachorg_onboarding_done')) return;
+  // Se veio por link de cortesia, não sobrepõe (a landing já cuida do welcome)
+  if(new URLSearchParams(location.search).get('vip')) return;
+  setTimeout(() => _showOnboarding(), 300);
+}
+
+function _showOnboarding() {
+  _obCurrent = 0;
+  let overlay = document.getElementById('onboardingOverlay');
+  if(overlay) overlay.remove();
+
+  overlay = document.createElement('div');
+  overlay.id = 'onboardingOverlay';
+
+  const slidesHTML = _OB_SLIDES.map((s, i) => `
+    <div class="ob-slide">
+      <div class="ob-emoji">${s.emoji}</div>
+      <div class="ob-title">${s.title}</div>
+      <div class="ob-desc">${s.desc}</div>
+    </div>`).join('');
+
+  const dotsHTML = _OB_SLIDES.map((_, i) =>
+    `<div class="ob-dot${i===0?' active':''}" id="obDot${i}"></div>`
+  ).join('');
+
+  overlay.innerHTML = `
+    <div class="ob-slides" id="obSlides">${slidesHTML}</div>
+    <div class="ob-dots">${dotsHTML}</div>
+    <div class="ob-footer">
+      <button class="ob-btn-next" id="obBtnNext" onclick="_obNext()">Próximo →</button>
+      <button class="ob-btn-skip" onclick="_obDone()">Pular tutorial</button>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // Swipe touch
+  overlay.addEventListener('touchstart', e => { _obTouchStartX = e.touches[0].clientX; }, {passive:true});
+  overlay.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - _obTouchStartX;
+    if(Math.abs(dx) > 50) { dx < 0 ? _obNext() : _obPrev(); }
+  }, {passive:true});
+}
+
+function _obGo(idx) {
+  _obCurrent = Math.max(0, Math.min(_OB_SLIDES.length - 1, idx));
+  const slides = document.getElementById('obSlides');
+  if(slides) slides.style.transform = `translateX(-${_obCurrent * 100}%)`;
+  document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i === _obCurrent));
+  const btn = document.getElementById('obBtnNext');
+  if(btn) btn.textContent = _obCurrent === _OB_SLIDES.length - 1 ? '🚀 Começar agora' : 'Próximo →';
+}
+
+function _obNext() {
+  if(_obCurrent >= _OB_SLIDES.length - 1) { _obDone(); return; }
+  _obGo(_obCurrent + 1);
+}
+function _obPrev() { _obGo(_obCurrent - 1); }
+
+function _obDone() {
+  localStorage.setItem('coachorg_onboarding_done', '1');
+  const overlay = document.getElementById('onboardingOverlay');
+  if(overlay) {
+    overlay.style.transition = 'opacity .4s';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 400);
+  }
+}
+
 // ===== Compartilhamento com seletor de formato =====
 let _sharePending = null; // { type:'treino'|'semanal', studentId?, workoutIdx? }
 
@@ -8542,6 +8677,7 @@ setTimeout(() => {
 checkPasswordResetURL();
 handleStravaCallback();
 checkBetaBanner();
+checkOnboarding();
 checkNotifications();
 checkWhatsAppReminders();
 setInterval(()=>{ checkNotifications(); checkWhatsAppReminders(); }, 60000);
