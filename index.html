@@ -6221,26 +6221,40 @@ function checkCourtesyURL() {
   try {
     // Salvar código de indicação se veio por link
     const ref = new URLSearchParams(location.search).get('ref');
-    if(ref) { localStorage.setItem('coachorg_ref_by', ref); history.replaceState({}, '', location.pathname); }
+    if(ref) { localStorage.setItem('coachorg_ref_by', ref); }
 
     const param = new URLSearchParams(location.search).get('vip');
-    if(!param) return;
+    if(!param) {
+      // limpa só o ref se nao tinha vip
+      if(ref) history.replaceState({}, '', location.pathname);
+      return;
+    }
     const obj = JSON.parse(atob(decodeURIComponent(param)));
     if(obj.s !== _VIP_S) return;
     if(obj.exp && Date.now() > obj.exp) { showToast('Esse link de cortesia expirou. Pede um novo 🙏'); return; }
-    if(isPro) { showToast('Você já tem acesso Pro!'); return; }
-    isPro = true;
-    localStorage.setItem('coachorg_pro','true');
-    localStorage.setItem('coachorg_plan', obj.p || 'cortesia');
-    if(obj.exp) localStorage.setItem('coachorg_pro_exp', String(obj.exp));
-    updateAdBanner();
-    const msg = obj.p === 'cortesia'
-      ? '🎁 Cortesia de 3 meses ativada! Bem-vindo!'
-      : '🎁 Acesso ativado! Bem-vindo!';
-    showToast(msg);
+
+    const jaAtivouAntes = isPro;
+    if(!jaAtivouAntes) {
+      isPro = true;
+      localStorage.setItem('coachorg_pro','true');
+      localStorage.setItem('coachorg_plan', obj.p || 'cortesia');
+      if(obj.exp) localStorage.setItem('coachorg_pro_exp', String(obj.exp));
+      updateAdBanner();
+    }
+
+    // Tenta mostrar a landing de boas-vindas (que cobre toast também)
+    const planoLabel = obj.p === 'cortesia' ? '3 meses grátis Pro' : 'Acesso Pro liberado';
+    const mostrou = showCourtesyWelcome(planoLabel);
+    if(!mostrou) {
+      const msg = jaAtivouAntes
+        ? '🎁 Você já tinha acesso ativo. Bem-vindo de volta!'
+        : (obj.p === 'cortesia' ? '🎁 Cortesia de 3 meses ativada! Bem-vindo!' : '🎁 Acesso ativado! Bem-vindo!');
+      showToast(msg);
+    }
+
     history.replaceState({}, '', location.pathname);
     setTimeout(()=>{ renderHome(); renderCoachIA(); }, 400);
-  } catch(e) {}
+  } catch(e) { console.warn('courtesy err', e); }
 }
 
 function renderCoachIA() {
@@ -6446,6 +6460,272 @@ function _isIOS() {
 }
 function _isAndroid() {
   return /Android/.test(navigator.userAgent);
+}
+function _isInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  // WhatsApp, Instagram, Facebook, TikTok, Messenger
+  return /WhatsApp|Instagram|FBAN|FBAV|FB_IAB|MessengerForiOS|MessengerLite|Twitter|TikTok|Line\//.test(ua);
+}
+function _isStandalonePWA() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator && window.navigator.standalone === true);
+}
+function _detectAppLink() {
+  const ua = navigator.userAgent || '';
+  if(/WhatsApp/.test(ua)) return 'WhatsApp';
+  if(/Instagram/.test(ua)) return 'Instagram';
+  if(/FBAN|FBAV|FB_IAB/.test(ua)) return 'Facebook';
+  if(/MessengerForiOS|MessengerLite/.test(ua)) return 'Messenger';
+  if(/Twitter/.test(ua)) return 'Twitter / X';
+  if(/TikTok/.test(ua)) return 'TikTok';
+  return 'navegador do app';
+}
+
+function showCourtesyWelcome(planoLabel) {
+  // Se já está instalado como PWA, só ativa silenciosamente
+  if(_isStandalonePWA()) return false;
+
+  const inApp = _isInAppBrowser();
+  const ios = _isIOS();
+  const android = _isAndroid();
+  const appName = _detectAppLink();
+  const link = location.origin + location.pathname + (location.search || '');
+
+  let overlay = document.getElementById('courtesyWelcomeOverlay');
+  if(overlay) overlay.remove();
+  overlay = document.createElement('div');
+  overlay.id = 'courtesyWelcomeOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a14;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:24px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+
+  // ===== HEADER: Comemoração =====
+  const header = `
+    <div style="text-align:center;margin-bottom:18px;padding-top:10px">
+      <div style="font-size:54px;line-height:1">🎁</div>
+      <div style="font-size:20px;font-weight:900;color:#fff;margin-top:8px;letter-spacing:-.3px">Cortesia ativada!</div>
+      <div style="font-size:13px;color:#4ade80;font-weight:700;margin-top:3px">${planoLabel || '3 meses grátis Pro'}</div>
+      <div style="font-size:11px;color:#888;margin-top:6px;line-height:1.5">Antes de começar, instala o app no seu celular pra usar offline e direto no ícone</div>
+    </div>`;
+
+  // ===== INSTRUÇÃO BASEADA NO CONTEXTO =====
+  let instrucao = '';
+
+  if(inApp && ios) {
+    // PIOR CASO: iOS dentro do WhatsApp/Insta
+    instrucao = `
+      <div style="background:#ff525215;border:1.5px solid #ff5252;border-radius:14px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:20px">⚠️</span>
+          <div style="font-size:13px;font-weight:800;color:#ff5252">Você abriu pelo ${appName}</div>
+        </div>
+        <div style="font-size:12px;color:#fff;line-height:1.5">No iPhone só dá pra instalar o app pelo <strong>Safari</strong>. Segue os passos:</div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #5b8cff40">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#5b8cff;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">1</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Copia o link</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">Toca no botão grande abaixo, o link vai pro recortes</div>
+            <button onclick="copiarLinkCortesia()" id="btnCopiarLink" style="margin-top:8px;background:#5b8cff;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13px;width:100%">📋 Copiar link da cortesia</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #5b8cff40">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#5b8cff;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">2</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Abre o Safari</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">O navegador azul com bússola 🧭 na tela do iPhone. Cola o link na barra de cima e abre.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #4ade8040">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#4ade80;color:#0f0f1a;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">3</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Botão compartilhar → Adicionar à Tela</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">Toca no <strong>📤 (quadrado com seta pra cima)</strong> embaixo · rola e toca em <strong>"Adicionar à Tela de Início"</strong> · confirma</div>
+          </div>
+        </div>
+      </div>`;
+  }
+  else if(inApp && android) {
+    // Android in-app browser
+    instrucao = `
+      <div style="background:#ffab0015;border:1.5px solid #ffab00;border-radius:14px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:20px">⚠️</span>
+          <div style="font-size:13px;font-weight:800;color:#ffab00">Você abriu pelo ${appName}</div>
+        </div>
+        <div style="font-size:12px;color:#fff;line-height:1.5">No Android, a instalação fica melhor pelo <strong>Chrome</strong>:</div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #4ade8040">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#4ade80;color:#0f0f1a;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">1</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Toca em ⋮ (3 pontinhos)</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">No canto superior direito da tela do ${appName}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #4ade8040">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#4ade80;color:#0f0f1a;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">2</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Toca "Abrir no Chrome"</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">Ou "Abrir no navegador externo"</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #4ade8040">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#4ade80;color:#0f0f1a;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">3</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Aparece "Instalar app"</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">Toca em <strong>Instalar</strong> · ícone aparece na tela inicial</div>
+            <button onclick="copiarLinkCortesia()" id="btnCopiarLink" style="margin-top:10px;background:#5b8cff;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:12px;width:100%">📋 Copiar link (se precisar colar manualmente)</button>
+          </div>
+        </div>
+      </div>`;
+  }
+  else if(ios) {
+    // iOS Safari direto
+    instrucao = `
+      <div style="background:#4ade8015;border:1.5px solid #4ade80;border-radius:14px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">✅</span>
+          <div style="font-size:13px;font-weight:800;color:#4ade80">Você tá no Safari — perfeito!</div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #5b8cff40">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#5b8cff;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">1</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Toca em 📤 Compartilhar</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">Quadrado com seta pra cima, embaixo da tela (centro)</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #5b8cff40">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#5b8cff;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">2</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Rola até "Adicionar à Tela de Início"</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">Toca ➕ "Adicionar à Tela de Início"</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #4ade8040">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#4ade80;color:#0f0f1a;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">3</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Confirma "Adicionar"</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">🎉 Ícone aparece na tela inicial · abre como app</div>
+          </div>
+        </div>
+      </div>`;
+  }
+  else if(android) {
+    // Android Chrome direto
+    const hasInstallPrompt = !!(window._deferredInstallPrompt || window.deferredPrompt);
+    instrucao = `
+      <div style="background:#4ade8015;border:1.5px solid #4ade80;border-radius:14px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">✅</span>
+          <div style="font-size:13px;font-weight:800;color:#4ade80">Pronto pra instalar</div>
+        </div>
+      </div>
+
+      ${hasInstallPrompt ? `
+      <button onclick="tentarInstalarPWA()" style="width:100%;background:linear-gradient(90deg,#4ade80,#22c55e);color:#0f0f1a;border:none;border-radius:14px;padding:16px;font-weight:900;cursor:pointer;font-size:16px;margin-bottom:12px;box-shadow:0 6px 20px #4ade8040">📲 INSTALAR APP AGORA</button>
+      <div style="text-align:center;font-size:11px;color:#666;margin-bottom:14px">— ou faz manual: —</div>
+      ` : ''}
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #4ade8040">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#4ade80;color:#0f0f1a;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">1</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Toca em ⋮ (3 pontinhos)</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5">Canto superior direito do Chrome</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #4ade8040">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#4ade80;color:#0f0f1a;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0">2</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Toca "Instalar app" ou "Adicionar à tela inicial"</div>
+          </div>
+        </div>
+      </div>`;
+  }
+  else {
+    // Desktop ou outro
+    instrucao = `
+      <div style="background:#1a1a2e;border:1.5px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;text-align:center">
+        <div style="font-size:32px">💻</div>
+        <div style="font-size:13px;font-weight:800;color:#fff;margin:8px 0">Você tá no computador</div>
+        <div style="font-size:11px;color:#aaa;line-height:1.5">Abre esse link no celular pra instalar o app. No PC funciona, mas o melhor é mobile.</div>
+        <button onclick="copiarLinkCortesia()" id="btnCopiarLink" style="margin-top:12px;background:#5b8cff;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:12px">📋 Copiar link pra abrir no celular</button>
+      </div>`;
+  }
+
+  // ===== FOOTER: pular ou ajuda =====
+  const footer = `
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+      <button onclick="fecharCourtesyWelcome()" style="background:transparent;border:1.5px solid #ffffff20;color:#fff;border-radius:12px;padding:13px;font-weight:700;cursor:pointer;font-size:13px">Já instalei — Entrar no app</button>
+      <button onclick="fecharCourtesyWelcome(true)" style="background:transparent;border:none;color:#666;font-size:11px;padding:6px;cursor:pointer">Pular por agora</button>
+    </div>
+    <div style="font-size:9px;color:#444;text-align:center;margin-top:16px;line-height:1.5">Sua cortesia já está ativa nesse navegador.<br>Se instalar depois, mesmo link reativa.</div>
+  `;
+
+  overlay.innerHTML = header + instrucao + footer;
+  document.body.appendChild(overlay);
+  return true;
+}
+
+function fecharCourtesyWelcome(pulou) {
+  const el = document.getElementById('courtesyWelcomeOverlay');
+  if(el) el.remove();
+  if(pulou) localStorage.setItem('coachorg_install_dismissed', '1');
+}
+
+function copiarLinkCortesia() {
+  const link = location.origin + location.pathname + (location.search || '');
+  const btn = document.getElementById('btnCopiarLink');
+  if(navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(() => {
+      if(btn) { btn.textContent = '✅ Link copiado!'; setTimeout(()=>{ if(btn) btn.textContent = '📋 Copiar link da cortesia'; }, 2500); }
+    }).catch(() => fallbackCopiar(link, btn));
+  } else fallbackCopiar(link, btn);
+}
+
+function fallbackCopiar(text, btn) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); if(btn) { btn.textContent = '✅ Copiado!'; setTimeout(()=>{ if(btn) btn.textContent = '📋 Copiar link da cortesia'; }, 2500); } }
+  catch(e) { if(btn) btn.textContent = 'Erro — copia manual'; }
+  document.body.removeChild(ta);
+}
+
+async function tentarInstalarPWA() {
+  const p = window._deferredInstallPrompt || window.deferredPrompt;
+  if(!p) { showToast('Use o menu ⋮ → Instalar app'); return; }
+  p.prompt();
+  const result = await p.userChoice;
+  if(result.outcome === 'accepted') { fecharCourtesyWelcome(); showToast('🎉 Instalando...'); }
+  window._deferredInstallPrompt = null;
+  window.deferredPrompt = null;
 }
 
 function showStickyInstall() {
