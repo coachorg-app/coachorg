@@ -814,6 +814,12 @@ body {
   <div class="splash-bar"></div>
 </div>
 
+<div id="betaBanner" style="display:none;background:linear-gradient(90deg,#9c5bff,#5b8cff);padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:11px;color:#fff;font-weight:600;line-height:1.4">
+  <span style="font-size:14px;flex-shrink:0">🚧</span>
+  <div style="flex:1">App em <strong>BETA</strong> — pode aparecer bug. Manda print pra gente se travar 🙏</div>
+  <button onclick="dismissBetaBanner()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:14px;font-weight:700;flex-shrink:0;line-height:1">×</button>
+</div>
+
 <div class="header">
   <div style="display:flex;align-items:center;gap:12px">
     <svg class="logo-icon" width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -2426,7 +2432,21 @@ function renderPersonalSelfCare() {
       ${s.workout ? '✅ TREINEI HOJE' : '🏋️ Marcar meu treino do dia'}
     </button>
 
-    <div id="stravaSection"></div>
+    <div id="stravaSection" style="display:none"></div>
+
+    <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span style="font-size:18px">💪</span>
+        <span style="font-size:12px;font-weight:700">Calculadora 1RM</span>
+        <span style="font-size:9px;color:var(--text2);font-weight:600;letter-spacing:.3px">FORÇA MÁXIMA</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input type="number" id="rmWeight" placeholder="Peso (kg)" min="1" max="500" step="0.5" style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);padding:9px 11px;font-size:13px;text-align:center">
+        <input type="number" id="rmReps" placeholder="Repetições" min="1" max="20" style="flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text);padding:9px 11px;font-size:13px;text-align:center">
+        <button onclick="calc1RM()" style="background:#ffab00;color:#0f0f1a;border:none;border-radius:10px;padding:9px 14px;font-weight:800;cursor:pointer;font-size:12px">Calcular</button>
+      </div>
+      <div id="rmResult" style="font-size:11px;color:var(--text2);text-align:center;padding:4px"></div>
+    </div>
 
     <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
@@ -2721,6 +2741,70 @@ async function validarMeuTreino() {
   }
   btn.textContent = '🎓 Validar PhD';
   btn.disabled = false;
+}
+
+function dismissBetaBanner() {
+  document.getElementById('betaBanner').style.display = 'none';
+  localStorage.setItem('coachorg_beta_dismissed', String(Date.now()));
+}
+
+function checkBetaBanner() {
+  const banner = document.getElementById('betaBanner');
+  if(!banner) return;
+  const dismissed = parseInt(localStorage.getItem('coachorg_beta_dismissed') || '0', 10);
+  const hoursAgo = (Date.now() - dismissed) / 3600000;
+  if(dismissed && hoursAgo < 24) { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+}
+
+function calc1RM() {
+  const w = parseFloat(document.getElementById('rmWeight').value);
+  const r = parseInt(document.getElementById('rmReps').value, 10);
+  const el = document.getElementById('rmResult');
+  if(!w || !r || w <= 0 || r <= 0) { el.innerHTML = '<span style="color:var(--accent)">Preencha peso e repetições</span>'; return; }
+  if(r > 20) { el.innerHTML = '<span style="color:var(--accent)">Máximo 20 reps pra estimativa confiável</span>'; return; }
+
+  // 3 fórmulas validadas + média
+  const epley = w * (1 + r/30);
+  const brzycki = w * 36 / (37 - r);
+  const lander = (100 * w) / (101.3 - 2.67123 * r);
+  const avg = (epley + brzycki + lander) / 3;
+  const oneRM = Math.round(avg);
+
+  const pcts = [
+    { pct: 95, reps: '1-2', goal: 'Força máx' },
+    { pct: 90, reps: '3-4', goal: 'Força' },
+    { pct: 85, reps: '5-6', goal: 'Força/Hiper' },
+    { pct: 80, reps: '7-8', goal: 'Hipertrofia' },
+    { pct: 75, reps: '8-10', goal: 'Hipertrofia' },
+    { pct: 70, reps: '10-12', goal: 'Hipertrofia' },
+    { pct: 65, reps: '12-15', goal: 'Hiper/Resist' },
+    { pct: 60, reps: '15-20', goal: 'Resistência' }
+  ];
+
+  el.innerHTML = `<div style="background:var(--card);border:1.5px solid #ffab0040;border-radius:10px;padding:10px;margin-top:6px;text-align:left">
+    <div style="text-align:center;margin-bottom:10px">
+      <div style="font-size:10px;color:var(--text2);letter-spacing:1px;font-weight:700">SEU 1RM ESTIMADO</div>
+      <div style="font-size:36px;font-weight:900;color:#ffab00;line-height:1;margin-top:4px">${oneRM}<span style="font-size:14px;color:var(--text2);font-weight:600">kg</span></div>
+      <div style="font-size:9px;color:var(--text3);margin-top:3px">Média de Epley + Brzycki + Lander</div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:8px">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;margin-bottom:6px;letter-spacing:.5px">TABELA DE TREINAMENTO:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;font-size:10px">
+        <div style="color:var(--text2);font-weight:700">%</div>
+        <div style="color:var(--text2);font-weight:700">Peso</div>
+        <div style="color:var(--text2);font-weight:700">Reps</div>
+        <div style="color:var(--text2);font-weight:700">Objetivo</div>
+        ${pcts.map(p => `
+          <div style="color:#ffab00;font-weight:700">${p.pct}%</div>
+          <div style="color:var(--text);font-weight:600">${Math.round(oneRM * p.pct / 100)}kg</div>
+          <div style="color:var(--text)">${p.reps}</div>
+          <div style="color:var(--text2);font-size:9px">${p.goal}</div>
+        `).join('')}
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);margin-top:8px;font-style:italic;text-align:center">⚠️ Use com aquecimento + spotter. Estimativa confiável até 10 reps.</div>
+  </div>`;
 }
 
 async function validateMyOwnWorkout() {
@@ -5201,6 +5285,7 @@ checkCourtesyExpiration();
 checkCourtesyURL();
 checkPasswordResetURL();
 handleStravaCallback();
+checkBetaBanner();
 checkNotifications();
 checkWhatsAppReminders();
 setInterval(()=>{ checkNotifications(); checkWhatsAppReminders(); }, 60000);
