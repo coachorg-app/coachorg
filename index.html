@@ -1007,13 +1007,16 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:22px">📸</span>
-          <span style="font-size:15px;font-weight:800">Análise Postural PhD</span>
+          <div>
+            <div style="font-size:15px;font-weight:800">Análise Postural PhD</div>
+            <div style="font-size:10px;color:var(--text2)" id="posturaAlvoLabel">—</div>
+          </div>
         </div>
         <button onclick="fecharModalPostura()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">×</button>
       </div>
 
-      <!-- Seletor: pra quem? -->
-      <div style="margin-bottom:14px">
+      <!-- Seletor "Pra quem?" — só aparece se NÃO veio de um aluno específico -->
+      <div id="posturaAlvoSelector" style="margin-bottom:14px">
         <label style="font-size:11px;color:var(--text2);font-weight:700">Pra quem?</label>
         <select id="posturaAlvo" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:13px;margin-top:4px">
           <option value="eu">💚 Eu mesmo</option>
@@ -4069,13 +4072,30 @@ function calc1RMAluno(studentId) {
 }
 
 function abrirModalPostura(preSelectStudentId) {
-  // Popular seletor com EU + lista de alunos
   const sel = document.getElementById('posturaAlvo');
-  if(sel) {
-    sel.innerHTML = '<option value="eu">💚 Eu mesmo</option>' +
-      (window.students || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    if(preSelectStudentId) sel.value = preSelectStudentId;
+  const selectorBox = document.getElementById('posturaAlvoSelector');
+  const headerLabel = document.getElementById('posturaAlvoLabel');
+
+  if(preSelectStudentId) {
+    // Veio do perfil do aluno: oculta seletor, mostra nome do aluno no header
+    const s = (window.students || []).find(x => x.id === preSelectStudentId);
+    if(sel) {
+      sel.innerHTML = `<option value="${preSelectStudentId}">${s ? s.name : 'Aluno'}</option>`;
+      sel.value = preSelectStudentId;
+    }
+    if(selectorBox) selectorBox.style.display = 'none';
+    if(headerLabel) headerLabel.textContent = s ? s.name : 'Aluno';
+  } else {
+    // Sem aluno pré-selecionado: mostra seletor completo (EU + alunos)
+    if(sel) {
+      sel.innerHTML = '<option value="eu">💚 Eu mesmo</option>' +
+        (window.students || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      sel.value = 'eu';
+    }
+    if(selectorBox) selectorBox.style.display = '';
+    if(headerLabel) headerLabel.textContent = 'Escolhe abaixo pra quem é';
   }
+
   // Limpar estado anterior
   _posturaImagens = [];
   document.getElementById('posturaPreview').innerHTML = '';
