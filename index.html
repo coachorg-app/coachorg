@@ -1093,6 +1093,14 @@ body {
     </div>
   </div>
 
+  <div class="section-title" style="margin-top:30px">📅 Sincronizar Calendário</div>
+  <div class="card" style="background:linear-gradient(135deg,#1a1a2e,#0f2a40);border:1.5px solid #5b8cff40">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text)">Exportar agenda pra Google / Apple Calendar</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:12px">Baixa arquivo .ics com seus treinos da semana. Importa em qualquer calendário e seus alunos aparecem no celular automaticamente.</div>
+    <button onclick="downloadICS()" style="width:100%;background:#5b8cff;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;cursor:pointer;font-size:13px">📥 Baixar agenda (.ics)</button>
+    <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5">💡 Como usar: <strong>Google Calendar</strong> → ⚙️ Configurações → Importar → seleciona o arquivo · <strong>Apple Calendar</strong> → Arquivo → Importar · <strong>Outlook</strong> → Adicionar calendário → Importar</div>
+  </div>
+
   <div class="section-title" style="margin-top:30px">Indique & Ganhe</div>
   <div class="card" id="referralPanel">
     <div style="text-align:center;padding:12px 0;font-size:13px;color:var(--text2)">Carregando...</div>
@@ -2005,6 +2013,109 @@ function renderTasks() {
       <button onclick="deleteTask('${t.id}')" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 4px" title="Remover">×</button>
     </div>
   `).join('');
+}
+
+function _icsEscape(str) {
+  return String(str || '').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+
+function _icsStamp(date) {
+  const pad = n => String(n).padStart(2,'0');
+  return date.getUTCFullYear() + pad(date.getUTCMonth()+1) + pad(date.getUTCDate()) + 'T' +
+    pad(date.getUTCHours()) + pad(date.getUTCMinutes()) + pad(date.getUTCSeconds()) + 'Z';
+}
+
+function _icsLocalStamp(date) {
+  const pad = n => String(n).padStart(2,'0');
+  return date.getFullYear() + pad(date.getMonth()+1) + pad(date.getDate()) + 'T' +
+    pad(date.getHours()) + pad(date.getMinutes()) + '00';
+}
+
+function generateICS() {
+  const ICAL_DAYS = ['SU','MO','TU','WE','TH','FR','SA'];
+  const now = new Date();
+  const today = new Date(now); today.setHours(0,0,0,0);
+  const dow = today.getDay();
+
+  let ics = '';
+  ics += 'BEGIN:VCALENDAR\r\n';
+  ics += 'VERSION:2.0\r\n';
+  ics += 'PRODID:-//CoachOrg//PT-BR//EN\r\n';
+  ics += 'CALSCALE:GREGORIAN\r\n';
+  ics += 'METHOD:PUBLISH\r\n';
+  ics += 'X-WR-CALNAME:CoachOrg - Treinos\r\n';
+  ics += 'X-WR-TIMEZONE:America/Sao_Paulo\r\n';
+
+  students.forEach(s => {
+    if(!s.days || s.days.length === 0) return;
+    s.days.forEach(d => {
+      const startTime = s.times?.[String(d)] || s.time || '06:00';
+      const endTime = s.endTime || addMinutes(startTime, 60);
+      const [sh, sm] = startTime.split(':').map(Number);
+      const [eh, em] = endTime.split(':').map(Number);
+
+      const firstSession = new Date(today);
+      const daysUntil = (d - dow + 7) % 7;
+      firstSession.setDate(today.getDate() + daysUntil);
+      firstSession.setHours(sh, sm, 0, 0);
+
+      const sessionEnd = new Date(firstSession);
+      sessionEnd.setHours(eh, em, 0, 0);
+
+      const dtstamp = _icsStamp(now);
+      const dtstart = _icsLocalStamp(firstSession);
+      const dtend = _icsLocalStamp(sessionEnd);
+      const uid = `coachorg-${s.id}-${d}@coachorg-app.github.io`;
+
+      const summary = `🏋️ ${s.name}${s.dayTypes?.[d] ? ' · ' + s.dayTypes[d] : ''}`;
+      const descParts = [];
+      if(s.goal) descParts.push('Objetivo: ' + s.goal);
+      if(s.classType && s.classType !== 'Individual') descParts.push('Tipo: ' + s.classType);
+      if(s.phone) descParts.push('Tel: ' + s.phone);
+      if(s.value) descParts.push('Valor: R$' + s.value);
+      descParts.push('Gerado por CoachOrg');
+      const description = descParts.join('\n');
+
+      ics += 'BEGIN:VEVENT\r\n';
+      ics += 'UID:' + uid + '\r\n';
+      ics += 'DTSTAMP:' + dtstamp + '\r\n';
+      ics += 'DTSTART;TZID=America/Sao_Paulo:' + dtstart + '\r\n';
+      ics += 'DTEND;TZID=America/Sao_Paulo:' + dtend + '\r\n';
+      ics += 'RRULE:FREQ=WEEKLY;BYDAY=' + ICAL_DAYS[d] + '\r\n';
+      ics += 'SUMMARY:' + _icsEscape(summary) + '\r\n';
+      ics += 'DESCRIPTION:' + _icsEscape(description) + '\r\n';
+      if(s.local) ics += 'LOCATION:' + _icsEscape(s.local) + '\r\n';
+      ics += 'STATUS:CONFIRMED\r\n';
+      ics += 'TRANSP:OPAQUE\r\n';
+      ics += 'BEGIN:VALARM\r\n';
+      ics += 'ACTION:DISPLAY\r\n';
+      ics += 'DESCRIPTION:Treino com ' + _icsEscape(s.name) + '\r\n';
+      ics += 'TRIGGER:-PT15M\r\n';
+      ics += 'END:VALARM\r\n';
+      ics += 'END:VEVENT\r\n';
+    });
+  });
+
+  ics += 'END:VCALENDAR\r\n';
+  return ics;
+}
+
+function downloadICS() {
+  if(!students || students.length === 0) {
+    showToast('Cadastre alunos primeiro');
+    return;
+  }
+  const ics = generateICS();
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'coachorg-agenda.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('📥 Agenda baixada! Importa no seu calendário.');
 }
 
 function addMinutes(timeStr, minutes) {
