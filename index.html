@@ -961,7 +961,11 @@ body {
       <button onclick="validarMeuTreino()" id="meuPhdBtn" style="flex:1;background:linear-gradient(90deg,#5b8cff,#9c5bff);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;font-size:13px">🎓 Validar PhD</button>
     </div>
     <div id="meuTreinoResult" style="margin-top:8px"></div>
-    <button onclick="salvarMeuTreino()" id="salvarMeuBtn" style="width:100%;background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:10px;padding:9px;font-weight:700;cursor:pointer;font-size:12px;margin-top:8px">💾 Salvar este treino</button>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button onclick="salvarMeuTreino()" id="salvarMeuBtn" style="flex:1;background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:10px;padding:9px;font-weight:700;cursor:pointer;font-size:11px">💾 Salvar</button>
+      <button onclick="marcarTreinoFeito()" id="marcarFeitoBtn" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px;font-weight:700;cursor:pointer;font-size:11px">✅ Marcar feito hoje</button>
+    </div>
+    <div id="treinoMarcadoMsg" style="font-size:10px;color:#4ade80;text-align:center;margin-top:6px"></div>
   </div>
 
   <div class="section-title" style="margin-top:24px">📋 Meus Treinos Salvos</div>
@@ -2428,10 +2432,6 @@ function renderPersonalSelfCare() {
       </div>
     </div>
 
-    <button onclick="selfCareToggleField('workout')" style="width:100%;background:${s.workout ? '#ff525225' : 'var(--bg)'};border:1.5px solid ${s.workout ? 'var(--accent)' : 'var(--border)'};border-radius:10px;padding:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;color:${s.workout ? 'var(--accent)' : 'var(--text)'};font-size:12px;font-weight:700;margin-bottom:10px">
-      ${s.workout ? '✅ TREINEI HOJE' : '🏋️ Marcar meu treino do dia'}
-    </button>
-
     <div id="stravaSection" style="display:none"></div>
 
     <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px">
@@ -2731,6 +2731,15 @@ async function validarMeuTreino() {
   }
   btn.textContent = '🎓 Validar PhD';
   btn.disabled = false;
+}
+
+function marcarTreinoFeito() {
+  const s = getSelfCareState();
+  s.workout = true;
+  saveSelfCareState(s);
+  const msg = document.getElementById('treinoMarcadoMsg');
+  if(msg) msg.textContent = '✅ Treino de hoje marcado!';
+  setTimeout(() => { if(msg) msg.textContent = ''; }, 3000);
 }
 
 function dismissBetaBanner() {
