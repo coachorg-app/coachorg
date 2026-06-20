@@ -2820,12 +2820,17 @@ function showStudentDetail(id) {
         <div style="font-size:13px;font-weight:700;color:var(--text)">Gerar Treino com IA</div>
         <span style="background:#ff525220;color:var(--accent);border:1px solid #ff525240;border-radius:20px;font-size:9px;font-weight:800;padding:2px 7px;letter-spacing:.5px;text-transform:uppercase">Beta</span>
       </div>
-      <div style="font-size:10px;color:var(--accent);margin-bottom:8px;font-weight:600">⚡ Em breve: IA real com sugestões personalizadas por aluno</div>
+      <div style="font-size:10px;color:#5b8cff;margin-bottom:8px;font-weight:700">🎓 Validação PhD: ciência de Schoenfeld + RP embarcada</div>
       <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.4">Descreva o objetivo do treino. Ex: "peito e tríceps intermediário 45min, hipertrofia"</div>
       <textarea id="aiPromptInput_${s.id}" placeholder="Ex: treino de pernas iniciante, 4 exercícios, foco glúteo" rows="2"
         style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:13px;resize:vertical;font-family:inherit;margin-bottom:8px"></textarea>
-      <button onclick="generateAIWorkout('${s.id}')" id="aiGenBtn_${s.id}"
-        style="width:100%;background:linear-gradient(90deg,var(--accent),#ff6d6d);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;font-size:13px">⚡ Gerar treino</button>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button onclick="generateAIWorkout('${s.id}')" id="aiGenBtn_${s.id}"
+          style="flex:1;background:linear-gradient(90deg,var(--accent),#ff6d6d);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;font-size:13px">⚡ Gerar treino</button>
+        <button onclick="validatePhDWorkout('${s.id}')" id="phdValidateBtn_${s.id}"
+          style="flex:1;background:linear-gradient(90deg,#5b8cff,#9c5bff);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;font-size:13px">🎓 Validar PhD</button>
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:6px">🎓 Cole um treino já feito ou descreva, e a IA valida com ciência de hipertrofia</div>
       <div id="aiResult_${s.id}" style="margin-top:12px"></div>
     </div>
 
@@ -3121,6 +3126,145 @@ function _setsReps(level, goal) {
   if(level==='iniciante') return '3x12-15 (60s desc)';
   if(level==='avancado') return '4x8-10 (90s desc)';
   return '4x10-12 (75s desc)';
+}
+
+const _PHD_MUSCLE_KEYWORDS = {
+  peito: ['supino','crucifixo','peck','flexão','cross','peitoral','pull-over','pullover'],
+  costas: ['puxada','remada','barra fixa','pulldown','levantamento terra','pull','t-bar'],
+  ombro: ['desenvolvimento','elevação lateral','elevação frontal','encolhimento','arnold','face pull','remada alta'],
+  biceps: ['rosca','bíceps','biceps'],
+  triceps: ['tríceps','triceps','francês','mergulho','testa'],
+  quadriceps: ['agachamento','leg press','cadeira extensora','hack','avanço','búlgaro','sumô'],
+  posterior: ['stiff','mesa flexora','cadeira flexora','bom dia','romeno','isquio','levantamento terra'],
+  gluteo: ['hip thrust','glúteo','sumô','elevação pélvica','abdução','coice'],
+  panturrilha: ['panturrilha','burrinho'],
+  core: ['prancha','abdominal','russian twist','hollow','dead bug','wood chop']
+};
+
+const _PHD_REP_RANGES = {
+  forca: { min: 1, max: 6, optimal: '3-5' },
+  hipertrofia: { min: 6, max: 15, optimal: '8-12' },
+  resistencia: { min: 12, max: 25, optimal: '15-20' }
+};
+
+const _PHD_VOLUME_TARGETS = {
+  hipertrofia: { min: 10, max: 20, optimal: '12-18 séries/semana/músculo' },
+  forca: { min: 6, max: 12, optimal: '8-10 séries/semana/músculo' },
+  resistencia: { min: 8, max: 16, optimal: '10-14 séries/semana/músculo' }
+};
+
+function parseWorkoutText(text) {
+  if(!text) return [];
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  return lines.map(line => {
+    const setsMatch = line.match(/(\d+)\s*[x×]\s*(\d+)/i);
+    const repsAloneMatch = line.match(/(\d+)\s*(rep|series|série|set)/i);
+    return {
+      name: line,
+      sets: setsMatch ? parseInt(setsMatch[1], 10) : (repsAloneMatch ? 3 : 3),
+      reps: setsMatch ? parseInt(setsMatch[2], 10) : (repsAloneMatch ? parseInt(repsAloneMatch[1],10) : 10)
+    };
+  });
+}
+
+function detectMuscleGroup(exerciseName) {
+  const lower = exerciseName.toLowerCase();
+  for(const muscle in _PHD_MUSCLE_KEYWORDS) {
+    if(_PHD_MUSCLE_KEYWORDS[muscle].some(kw => lower.includes(kw))) return muscle;
+  }
+  return null;
+}
+
+function validatePhDWorkout(studentId) {
+  const input = document.getElementById('aiPromptInput_'+studentId);
+  const result = document.getElementById('aiResult_'+studentId);
+  const btn = document.getElementById('phdValidateBtn_'+studentId);
+  const text = input.value.trim();
+  if(!text) { showToast('Cole um treino ou descreva o objetivo'); return; }
+
+  btn.textContent = '🎓 Analisando...';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    const cfg = _parsePrompt(text);
+    const goal = cfg.goal === 'força' ? 'forca' : (cfg.goal === 'resistência' ? 'resistencia' : 'hipertrofia');
+
+    let exercises = parseWorkoutText(text);
+    if(exercises.length < 2) {
+      const generated = _pickExercises(cfg.groups, cfg.count);
+      exercises = generated.map(g => ({ name: g.name, sets: 4, reps: 10 }));
+    }
+
+    const muscleVolume = {};
+    let unknownCount = 0;
+    exercises.forEach(ex => {
+      const m = detectMuscleGroup(ex.name);
+      if(m) muscleVolume[m] = (muscleVolume[m] || 0) + ex.sets;
+      else unknownCount++;
+    });
+
+    const reps = exercises.map(e => e.reps);
+    const avgReps = reps.length ? Math.round(reps.reduce((a,b)=>a+b,0) / reps.length) : 10;
+    const totalSets = exercises.reduce((s,e)=>s+e.sets, 0);
+
+    const insights = [];
+
+    if(_PHD_REP_RANGES[goal]) {
+      const range = _PHD_REP_RANGES[goal];
+      if(avgReps < range.min) insights.push({ type:'warn', icon:'⚠️', title:'Repetições muito baixas pro objetivo', desc:`Média ${avgReps} reps. Pra ${cfg.goal} ideal: ${range.optimal} reps (Schoenfeld 2021)` });
+      else if(avgReps > range.max) insights.push({ type:'warn', icon:'⚠️', title:'Repetições muito altas pro objetivo', desc:`Média ${avgReps} reps. Pra ${cfg.goal} ideal: ${range.optimal} reps` });
+      else insights.push({ type:'ok', icon:'✅', title:'Repetições alinhadas', desc:`Média ${avgReps} reps — adequado pra ${cfg.goal}` });
+    }
+
+    if(totalSets < 8) insights.push({ type:'warn', icon:'📉', title:'Volume baixo', desc:`${totalSets} séries totais. Pra ${cfg.goal} considere 12-18 séries por sessão (RP, Schoenfeld)` });
+    else if(totalSets > 28) insights.push({ type:'warn', icon:'📈', title:'Volume alto demais', desc:`${totalSets} séries — risco de overreaching sem recuperação adequada` });
+    else insights.push({ type:'ok', icon:'✅', title:'Volume total adequado', desc:`${totalSets} séries totais — dentro do range eficiente` });
+
+    Object.keys(muscleVolume).forEach(m => {
+      const v = muscleVolume[m];
+      if(v > 10) insights.push({ type:'warn', icon:'⚡', title:`Volume excessivo em ${m}`, desc:`${v} séries só nessa sessão. Distribua na semana — máx 8-10 por sessão` });
+    });
+
+    const groups = cfg.groups || [];
+    if(groups.includes('peito') && !muscleVolume.costas && !groups.includes('costas')) {
+      insights.push({ type:'tip', icon:'⚖️', title:'Desequilíbrio push/pull', desc:'Treino de peito sem costas pode causar postura curvada. Ratio ideal: 1:1 ou 1:1.5 favor de pull' });
+    }
+    if(groups.includes('quadriceps') && !muscleVolume.posterior && !groups.includes('posterior') && !groups.includes('gluteo')) {
+      insights.push({ type:'tip', icon:'⚖️', title:'Cadeia posterior negligenciada', desc:'Quadríceps sem posterior aumenta risco LCA e desbalanço. Adicione stiff ou mesa flexora' });
+    }
+    if(groups.includes('ombro') && !text.toLowerCase().includes('face pull') && !text.toLowerCase().includes('crucifixo invertido')) {
+      insights.push({ type:'tip', icon:'🎯', title:'Falta posterior do deltoide', desc:'Treino de ombro sem face pull/crucifixo invertido = postura cifótica. Adicione 3x12-15' });
+    }
+
+    if(unknownCount > 0) insights.push({ type:'tip', icon:'❓', title:`${unknownCount} exercícios não identificados`, desc:'Não consegui classificar pelo nome. Validação parcial.' });
+
+    if(goal === 'hipertrofia') {
+      insights.push({ type:'science', icon:'🔬', title:'Recomendação PhD pra hipertrofia', desc:'Schoenfeld: 10-20 séries/músculo/SEMANA, frequência 2x. Treine cada grupo 2-3x/semana com 8-12 reps perto da falha (1-2 RIR)' });
+    } else if(goal === 'forca') {
+      insights.push({ type:'science', icon:'🔬', title:'Recomendação PhD pra força', desc:'RP: Treinos compostos pesados (3-5 reps), descanso 3-5min, frequência 2-3x por padrão' });
+    }
+
+    const color = (t) => ({ warn:'#ffab00', ok:'#4ade80', tip:'#5b8cff', science:'#9c5bff' }[t] || '#5b8cff');
+    const bg = (t) => ({ warn:'#ffab0015', ok:'#4ade8015', tip:'#5b8cff15', science:'#9c5bff15' }[t] || '#5b8cff15');
+
+    result.innerHTML = `
+      <div style="background:var(--bg);border:1.5px solid #5b8cff40;border-radius:12px;padding:14px;margin-top:6px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:18px">🎓</span>
+          <span style="font-size:13px;font-weight:800;color:#5b8cff;letter-spacing:.5px">VALIDAÇÃO PhD</span>
+          <span style="background:#5b8cff15;border:1px solid #5b8cff40;color:#5b8cff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px">Schoenfeld + RP</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${exercises.length} exercícios · ${totalSets} séries · ~${avgReps} reps médias · Objetivo: ${cfg.goal}</div>
+        ${insights.map(ins => `<div style="background:${bg(ins.type)};border:1px solid ${color(ins.type)}40;border-radius:10px;padding:10px 12px;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:800;color:${color(ins.type)};margin-bottom:3px">${ins.icon} ${ins.title}</div>
+          <div style="font-size:11px;color:var(--text);line-height:1.4">${ins.desc}</div>
+        </div>`).join('')}
+        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:10px;font-style:italic">Baseado em Schoenfeld 2021 (Science and Development of Muscle Hypertrophy) + RP Scientific Principles of Hypertrophy</div>
+      </div>`;
+
+    btn.textContent = '🎓 Validar PhD';
+    btn.disabled = false;
+  }, 700);
 }
 
 function generateAIWorkout(studentId) {
