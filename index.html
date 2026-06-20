@@ -1311,7 +1311,11 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
         </div>
       </div>
 
-      <button onclick="confirmarSharePicker()" id="btnConfirmarShare" style="width:100%;background:linear-gradient(90deg,#5b8cff,#9c5bff);color:#fff;border:none;border-radius:12px;padding:13px;font-weight:800;cursor:pointer;font-size:14px">📤 Gerar e Compartilhar</button>
+      <button onclick="confirmarSharePicker()" id="btnConfirmarShare" style="width:100%;background:linear-gradient(90deg,#5b8cff,#9c5bff);color:#fff;border:none;border-radius:12px;padding:13px;font-weight:800;cursor:pointer;font-size:14px">📤 Compartilhar (qualquer app)</button>
+
+      <button onclick="enviarTreinoAlunoWa()" id="btnEnviarAluno" style="display:none;width:100%;background:linear-gradient(90deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:12px;padding:13px;font-weight:800;cursor:pointer;font-size:14px;margin-top:8px">💬 Enviar pro <span id="btnEnviarAlunoNome">aluno</span></button>
+
+      <div id="enviarAlunoHint" style="display:none;font-size:9px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.5">📥 Baixa a imagem → 💬 abre WhatsApp do aluno com o texto pronto. Cola a imagem na conversa.</div>
     </div>
   </div>
 
@@ -5643,7 +5647,66 @@ function abrirSharePicker(type, ctx) {
   // Reset visual dos botões pro estado atual
   setShareOpt('size', _shareOpts.size);
   setShareOpt('bg', _shareOpts.bg);
+
+  // Mostra botão "enviar pro aluno" só se for treino com phone
+  const btnAluno = document.getElementById('btnEnviarAluno');
+  const hint = document.getElementById('enviarAlunoHint');
+  if(type === 'treino' && ctx?.studentId) {
+    const s = students.find(x => x.id === ctx.studentId);
+    if(s?.phone) {
+      const firstName = s.name.split(' ')[0];
+      document.getElementById('btnEnviarAlunoNome').textContent = firstName;
+      btnAluno.style.display = '';
+      hint.style.display = '';
+    } else {
+      btnAluno.style.display = 'none';
+      hint.style.display = 'none';
+    }
+  } else {
+    btnAluno.style.display = 'none';
+    hint.style.display = 'none';
+  }
+
   document.getElementById('modalSharePicker').style.display = 'flex';
+}
+
+async function enviarTreinoAlunoWa() {
+  const ctx = _sharePending;
+  if(!ctx || ctx.type !== 'treino') return;
+  const s = students.find(x => x.id === ctx.studentId);
+  const w = s?.workouts?.[ctx.workoutIdx];
+  if(!s || !w || !s.phone) { showToast('Aluno sem telefone'); return; }
+  const btn = document.getElementById('btnEnviarAluno');
+  btn.disabled = true;
+  const original = btn.innerHTML;
+  btn.innerHTML = '🎨 Gerando...';
+  try {
+    const blob = await generateTreinoCardBlob(s, w);
+    // 1. Baixa a imagem pro dispositivo
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'treino-' + s.name.split(' ')[0].toLowerCase() + '.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+    // 2. Abre WhatsApp com texto do treino
+    const firstName = s.name.split(' ')[0];
+    const msg = `Oi ${firstName}! Segue seu treino:\n\n*${w.name || 'Treino'}*\n\n${w.exercises}\n\nBora treinar! 💪`;
+    const phone = formatPhone(s.phone);
+
+    fecharSharePicker();
+    setTimeout(() => {
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+      showToast('📥 Imagem baixada · cola no WhatsApp do ' + firstName);
+    }, 600);
+  } catch(e) {
+    showToast('Erro: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.innerHTML = original;
 }
 
 function fecharSharePicker() {
