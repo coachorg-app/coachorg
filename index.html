@@ -604,6 +604,11 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
   background:linear-gradient(135deg,#5b8cff20,#9c5bff20);
   border-color:#5b8cff; color:var(--text);
 }
+.share-color-btn {
+  width:34px; height:34px; border-radius:50%; border:3px solid transparent;
+  cursor:pointer; padding:0; transition:.15s;
+}
+.share-color-btn.active { border-color:#fff; box-shadow:0 0 0 2px var(--accent); }
 .toggle {
   width:48px; height:28px; border-radius:14px; background:#ffffff20;
   position:relative; cursor:pointer; transition:.2s; border:none;
@@ -1281,6 +1286,33 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
             <button type="button" onclick="setShareOpt('bg','transparent')" data-opt="bg" data-val="transparent" class="share-opt-btn">▢ Transparente</button>
           </div>
         </div>
+        <div>
+          <label style="font-size:10px;color:var(--text2);font-weight:700">Cor de destaque</label>
+          <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+            <button type="button" onclick="setShareOpt('accent','#ff5252')" data-opt="accent" data-val="#ff5252" class="share-color-btn active" style="background:#ff5252"></button>
+            <button type="button" onclick="setShareOpt('accent','#ffab00')" data-opt="accent" data-val="#ffab00" class="share-color-btn" style="background:#ffab00"></button>
+            <button type="button" onclick="setShareOpt('accent','#4ade80')" data-opt="accent" data-val="#4ade80" class="share-color-btn" style="background:#4ade80"></button>
+            <button type="button" onclick="setShareOpt('accent','#5b8cff')" data-opt="accent" data-val="#5b8cff" class="share-color-btn" style="background:#5b8cff"></button>
+            <button type="button" onclick="setShareOpt('accent','#9c5bff')" data-opt="accent" data-val="#9c5bff" class="share-color-btn" style="background:#9c5bff"></button>
+            <button type="button" onclick="setShareOpt('accent','#ec4899')" data-opt="accent" data-val="#ec4899" class="share-color-btn" style="background:#ec4899"></button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text2);font-weight:700">Fonte</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
+            <button type="button" onclick="setShareOpt('font','sans')" data-opt="font" data-val="sans" class="share-opt-btn active" style="font-family:Arial,sans-serif">Aa Padrão</button>
+            <button type="button" onclick="setShareOpt('font','serif')" data-opt="font" data-val="serif" class="share-opt-btn" style="font-family:Georgia,serif">Aa Serifa</button>
+            <button type="button" onclick="setShareOpt('font','display')" data-opt="font" data-val="display" class="share-opt-btn" style="font-family:Impact,sans-serif;letter-spacing:1px">Aa Impacto</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text2);font-weight:700">Foto (opcional) <span id="conqImgStatus" style="font-size:9px;color:var(--text3);font-weight:500"></span></label>
+          <input type="file" id="conqImgInput" accept="image/*" style="display:none" onchange="setShareImage(event)">
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <button type="button" onclick="document.getElementById('conqImgInput').click()" style="flex:1;background:var(--bg);border:1.5px dashed #5b8cff60;border-radius:8px;color:#5b8cff;padding:9px;font-size:11px;font-weight:700;cursor:pointer">📷 Escolher foto</button>
+            <button type="button" onclick="setShareImageClear()" style="background:var(--bg);border:1.5px solid var(--border);color:var(--text2);border-radius:8px;padding:9px 12px;font-size:11px;font-weight:700;cursor:pointer">×</button>
+          </div>
+        </div>
       </div>
 
       <button onclick="gerarConquistaCard()" id="btnGerarConquista" style="width:100%;background:linear-gradient(90deg,#ffab00,#ff6d00);color:#0f0f1a;border:none;border-radius:12px;padding:13px;font-weight:800;cursor:pointer;font-size:14px;margin-top:14px">🏆 Gerar e Compartilhar</button>
@@ -1304,10 +1336,34 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
           <button type="button" onclick="setShareOpt('size','story')" data-opt="size" data-val="story" class="share-opt-btn">📲 Story<br><span>1080×1920</span></button>
         </div>
         <label style="font-size:10px;color:var(--text2);font-weight:700">Fundo</label>
-        <div id="spkBgPicker" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;margin-bottom:14px">
+        <div id="spkBgPicker" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;margin-bottom:10px">
           <button type="button" onclick="setShareOpt('bg','gradient')" data-opt="bg" data-val="gradient" class="share-opt-btn active">🌑 Escuro</button>
           <button type="button" onclick="setShareOpt('bg','light')" data-opt="bg" data-val="light" class="share-opt-btn">⬜ Claro</button>
           <button type="button" onclick="setShareOpt('bg','transparent')" data-opt="bg" data-val="transparent" class="share-opt-btn">▢ Transparente</button>
+        </div>
+
+        <label style="font-size:10px;color:var(--text2);font-weight:700">Cor de destaque</label>
+        <div style="display:flex;gap:6px;margin-top:4px;margin-bottom:10px;flex-wrap:wrap">
+          <button type="button" onclick="setShareOpt('accent','#ff5252')" data-opt="accent" data-val="#ff5252" class="share-color-btn active" style="background:#ff5252"></button>
+          <button type="button" onclick="setShareOpt('accent','#ffab00')" data-opt="accent" data-val="#ffab00" class="share-color-btn" style="background:#ffab00"></button>
+          <button type="button" onclick="setShareOpt('accent','#4ade80')" data-opt="accent" data-val="#4ade80" class="share-color-btn" style="background:#4ade80"></button>
+          <button type="button" onclick="setShareOpt('accent','#5b8cff')" data-opt="accent" data-val="#5b8cff" class="share-color-btn" style="background:#5b8cff"></button>
+          <button type="button" onclick="setShareOpt('accent','#9c5bff')" data-opt="accent" data-val="#9c5bff" class="share-color-btn" style="background:#9c5bff"></button>
+          <button type="button" onclick="setShareOpt('accent','#ec4899')" data-opt="accent" data-val="#ec4899" class="share-color-btn" style="background:#ec4899"></button>
+        </div>
+
+        <label style="font-size:10px;color:var(--text2);font-weight:700">Fonte</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;margin-bottom:10px">
+          <button type="button" onclick="setShareOpt('font','sans')" data-opt="font" data-val="sans" class="share-opt-btn active" style="font-family:Arial,sans-serif">Aa Padrão</button>
+          <button type="button" onclick="setShareOpt('font','serif')" data-opt="font" data-val="serif" class="share-opt-btn" style="font-family:Georgia,serif">Aa Serifa</button>
+          <button type="button" onclick="setShareOpt('font','display')" data-opt="font" data-val="display" class="share-opt-btn" style="font-family:Impact,sans-serif;letter-spacing:1px">Aa Impacto</button>
+        </div>
+
+        <label style="font-size:10px;color:var(--text2);font-weight:700">Foto (opcional) <span id="spkImgStatus" style="font-size:9px;color:var(--text3);font-weight:500"></span></label>
+        <input type="file" id="spkImgInput" accept="image/*" style="display:none" onchange="setShareImage(event)">
+        <div style="display:flex;gap:6px;margin-top:4px;margin-bottom:14px">
+          <button type="button" onclick="document.getElementById('spkImgInput').click()" style="flex:1;background:var(--bg);border:1.5px dashed #5b8cff60;border-radius:8px;color:#5b8cff;padding:9px;font-size:11px;font-weight:700;cursor:pointer">📷 Escolher foto</button>
+          <button type="button" onclick="setShareImageClear()" style="background:var(--bg);border:1.5px solid var(--border);color:var(--text2);border-radius:8px;padding:9px 12px;font-size:11px;font-weight:700;cursor:pointer">×</button>
         </div>
       </div>
 
@@ -5319,7 +5375,22 @@ function buildMonthCalendar(studentId) {
 // SEND WORKOUT VIA WHATSAPP
 // === COMPARTILHAMENTO DE CARDS ===
 // Estado global do share (escolhido pelo modal de formato)
-let _shareOpts = { size: 'sq', bg: 'gradient' };
+let _shareOpts = { size: 'sq', bg: 'gradient', accent: '#ff5252', font: 'sans', imageDataUrl: null };
+
+const SHARE_ACCENTS = [
+  { val:'#ff5252', label:'Vermelho' },
+  { val:'#ffab00', label:'Dourado' },
+  { val:'#4ade80', label:'Verde' },
+  { val:'#5b8cff', label:'Azul' },
+  { val:'#9c5bff', label:'Roxo' },
+  { val:'#ec4899', label:'Rosa' }
+];
+
+const SHARE_FONTS = {
+  sans:    'Arial, Helvetica, sans-serif',
+  serif:   'Georgia, "Times New Roman", serif',
+  display: '"Impact", "Bebas Neue", "Arial Black", sans-serif'
+};
 
 function _shareDims(size) {
   switch(size) {
@@ -5330,10 +5401,11 @@ function _shareDims(size) {
   }
 }
 
-function _shareTheme(bg) {
-  // Retorna paleta adaptada ao fundo
-  if(bg === 'light') return { text:'#0f0f1a', sub:'#444', accent:'#ff5252', divider:'#0f0f1a' };
-  return { text:'#fff', sub:'#aaa', accent:'#ff5252', divider:'#fff' };
+function _shareTheme(bg, accent, font) {
+  const acc = accent || _shareOpts.accent || '#ff5252';
+  const fam = SHARE_FONTS[font || _shareOpts.font] || SHARE_FONTS.sans;
+  if(bg === 'light') return { text:'#0f0f1a', sub:'#444', accent:acc, divider:'#0f0f1a', font:fam };
+  return { text:'#fff', sub:'#aaa', accent:acc, divider:'#fff', font:fam };
 }
 
 function _initShareCanvas(opts) {
@@ -5372,7 +5444,38 @@ function _initShareCanvas(opts) {
     ctx.scale(scale, scale);
   }
 
-  return { canvas, ctx, w, h, theme: _shareTheme(opts.bg), opts };
+  return { canvas, ctx, w, h, theme: _shareTheme(opts.bg, opts.accent, opts.font), opts };
+}
+
+// Desenha imagem do usuário se houver (círculo no topo central). Sempre Promise.
+function _drawShareImage(ctx, opts, x, y, size) {
+  return new Promise(resolve => {
+    if(!opts.imageDataUrl) { resolve(); return; }
+    const img = new Image();
+    img.onload = () => {
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, sx, sy, min, min, x, y, size, size);
+      ctx.restore();
+      // Borda colorida com accent
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
+      ctx.strokeStyle = _shareOpts.accent || '#ff5252';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.restore();
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = opts.imageDataUrl;
+  });
 }
 
 function _drawCoachOrgLogo(ctx, x, y, size) {
@@ -5402,25 +5505,25 @@ function _drawCoachOrgFooter(ctx, w, h, theme) {
   const footY = h - 140;
   _drawCoachOrgLogo(ctx, 70, footY, 100);
   ctx.fillStyle = theme.text;
-  ctx.font = 'bold 26px Arial, sans-serif';
+  ctx.font = `bold 26px ${theme.font}`;
   ctx.textAlign = 'left';
   ctx.fillText('CoachOrg', 200, footY + 30);
   ctx.fillStyle = theme.sub;
-  ctx.font = '18px Arial, sans-serif';
+  ctx.font = `18px ${theme.font}`;
   ctx.fillText('Organize. Cresça. Não perca aluno.', 200, footY + 60);
 }
 
-function generateTreinoCardBlob(student, workout) {
-  return new Promise(resolve => {
-    const { canvas, ctx, theme } = _initShareCanvas();
-    ctx.textAlign = 'left';
-    ctx.font = 'bold 22px Arial, sans-serif';
+async function generateTreinoCardBlob(student, workout) {
+  const { canvas, ctx, theme, opts } = _initShareCanvas();
+  if(opts.imageDataUrl) await _drawShareImage(ctx, opts, 800, 80, 200);
+  ctx.textAlign = 'left';
+  ctx.font = `bold 22px ${theme.font}`;
     ctx.fillStyle = theme.accent;
     ctx.fillText('TREINO PARA', 80, 110);
     ctx.fillStyle = theme.text;
-    ctx.font = 'bold 64px Arial, sans-serif';
+    ctx.font = `bold 64px ${theme.font}`;
     ctx.fillText((student.name || 'Aluno').toUpperCase(), 80, 180);
-    ctx.font = '24px Arial, sans-serif';
+    ctx.font = `24px ${theme.font}`;
     ctx.fillStyle = theme.sub;
     const info = [];
     if(student.days?.length) info.push(student.days.length + 'x/semana');
@@ -5433,53 +5536,54 @@ function generateTreinoCardBlob(student, workout) {
     let y = 350;
     exercises.forEach((line, i) => {
       ctx.fillStyle = theme.accent;
-      ctx.font = 'bold 28px Arial, sans-serif';
+      ctx.font = `bold 28px ${theme.font}`;
       ctx.fillText(String(i+1).padStart(2, '0') + '.', 80, y);
       ctx.fillStyle = theme.text;
-      ctx.font = '28px Arial, sans-serif';
+      ctx.font = `28px ${theme.font}`;
       const text = line.replace(/^\d+\.?\s*/, '');
       ctx.fillText(text.length > 40 ? text.slice(0, 38) + '...' : text, 150, y);
       y += 52;
     });
     _drawCoachOrgFooter(ctx, 1080, 1080, theme);
-    canvas.toBlob(blob => resolve(blob), 'image/png');
-  });
+    return new Promise(resolve => canvas.toBlob(blob => resolve(blob), 'image/png'));
 }
 
-function generateConquistaCardBlob(studentName, exercise, weight, prevWeight, period) {
-  return new Promise(resolve => {
-    const { canvas, ctx, theme } = _initShareCanvas();
-    ctx.font = 'bold 80px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = theme.text;
-    ctx.fillText('🏆', 540, 180);
-    ctx.font = 'bold 26px Arial, sans-serif';
-    ctx.fillStyle = '#ffab00';
-    ctx.fillText('NOVO RECORDE!', 540, 230);
-    ctx.fillStyle = theme.text;
-    ctx.font = 'bold 56px Arial, sans-serif';
-    ctx.fillText((studentName || 'ALUNO').toUpperCase(), 540, 350);
+async function generateConquistaCardBlob(studentName, exercise, weight, prevWeight, period) {
+  const { canvas, ctx, theme, opts } = _initShareCanvas();
+  const hasImg = !!opts.imageDataUrl;
+  // Imagem no topo se tiver
+  if(hasImg) await _drawShareImage(ctx, opts, 410, 60, 260);
+  const baseY = hasImg ? 370 : 180;
+  ctx.font = `bold 80px ${theme.font}`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = theme.text;
+  if(!hasImg) ctx.fillText('🏆', 540, 180);
+  ctx.font = `bold 26px ${theme.font}`;
+  ctx.fillStyle = '#ffab00';
+  ctx.fillText('🏆 NOVO RECORDE!', 540, baseY + 50);
+  ctx.fillStyle = theme.text;
+  ctx.font = `bold 56px ${theme.font}`;
+  ctx.fillText((studentName || 'ALUNO').toUpperCase(), 540, baseY + 130);
+  ctx.fillStyle = theme.sub;
+  ctx.font = `bold 32px ${theme.font}`;
+  ctx.fillText((exercise || '').toUpperCase(), 540, baseY + 195);
+  ctx.fillStyle = theme.accent;
+  ctx.font = `bold 160px ${theme.font}`;
+  ctx.fillText(weight + 'kg', 540, baseY + 360);
+  if(prevWeight && +prevWeight < +weight) {
     ctx.fillStyle = theme.sub;
-    ctx.font = 'bold 32px Arial, sans-serif';
-    ctx.fillText((exercise || '').toUpperCase(), 540, 430);
-    ctx.fillStyle = theme.accent;
-    ctx.font = 'bold 180px Arial, sans-serif';
-    ctx.fillText(weight + 'kg', 540, 620);
-    if(prevWeight && +prevWeight < +weight) {
-      ctx.fillStyle = theme.sub;
-      ctx.font = 'bold 24px Arial, sans-serif';
-      ctx.fillText('(era ' + prevWeight + 'kg)', 540, 680);
-      const diff = +weight - +prevWeight;
-      ctx.fillStyle = '#4ade80';
-      ctx.font = 'bold 38px Arial, sans-serif';
-      ctx.fillText('+' + diff + 'kg' + (period ? ' em ' + period : ''), 540, 770);
-    }
-    _drawCoachOrgFooter(ctx, 1080, 1080, theme);
-    canvas.toBlob(blob => resolve(blob), 'image/png');
-  });
+    ctx.font = `bold 24px ${theme.font}`;
+    ctx.fillText('(era ' + prevWeight + 'kg)', 540, baseY + 410);
+    const diff = +weight - +prevWeight;
+    ctx.fillStyle = '#4ade80';
+    ctx.font = `bold 36px ${theme.font}`;
+    ctx.fillText('+' + diff + 'kg' + (period ? ' em ' + period : ''), 540, baseY + 470);
+  }
+  _drawCoachOrgFooter(ctx, 1080, 1080, theme);
+  return new Promise(resolve => canvas.toBlob(blob => resolve(blob), 'image/png'));
 }
 
-function generateSemanalCardBlob() {
+async function generateSemanalCardBlob() {
   const today = new Date();
   const dow = today.getDay();
   const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - dow);
@@ -5516,15 +5620,15 @@ function generateSemanalCardBlob() {
   const monthName = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][today.getMonth()];
   const dateStr = startOfWeek.getDate() + '-' + endOfWeek.getDate() + ' ' + monthName;
 
-  return new Promise(resolve => {
-    const { canvas, ctx, theme, opts } = _initShareCanvas();
-    const cardBg = opts.bg === 'light' ? '#fff' : '#1a1a2e';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = theme.accent;
-    ctx.font = 'bold 22px Arial, sans-serif';
-    ctx.fillText('MINHA SEMANA · ' + dateStr.toUpperCase(), 80, 110);
+  const { canvas, ctx, theme, opts } = _initShareCanvas();
+  if(opts.imageDataUrl) await _drawShareImage(ctx, opts, 830, 60, 180);
+  const cardBg = opts.bg === 'light' ? '#fff' : '#1a1a2e';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = theme.accent;
+  ctx.font = `bold 22px ${theme.font}`;
+  ctx.fillText('MINHA SEMANA · ' + dateStr.toUpperCase(), 80, 110);
     ctx.fillStyle = theme.text;
-    ctx.font = 'bold 50px Arial, sans-serif';
+    ctx.font = `bold 50px ${theme.font}`;
     ctx.fillText('Como foi a semana', 80, 180);
     ctx.fillStyle = theme.accent;
     ctx.fillRect(80, 215, 200, 4);
@@ -5552,24 +5656,24 @@ function generateSemanalCardBlob() {
       ctx.stroke();
       ctx.textAlign = 'center';
       ctx.fillStyle = s.color;
-      ctx.font = 'bold 70px Arial, sans-serif';
+      ctx.font = `bold 70px ${theme.font}`;
       ctx.fillText(String(s.val), x + w/2, y + 85);
       ctx.fillStyle = theme.sub;
-      ctx.font = 'bold 18px Arial, sans-serif';
+      ctx.font = `bold 18px ${theme.font}`;
       ctx.fillText(s.label, x + w/2, y + 130);
     });
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffab00';
-    ctx.font = 'bold 26px Arial, sans-serif';
+    ctx.font = `bold 26px ${theme.font}`;
     ctx.fillText('🏆 PÓDIO DA SEMANA', 80, 510);
     ctx.fillStyle = theme.sub;
-    ctx.font = '18px Arial, sans-serif';
+    ctx.font = `18px ${theme.font}`;
     ctx.fillText('Alunos com melhor presença', 80, 540);
 
     if(podio.length === 0) {
       ctx.fillStyle = theme.sub;
-      ctx.font = 'italic 24px Arial, sans-serif';
+      ctx.font = `italic 24px ${theme.font}`;
       ctx.textAlign = 'center';
       ctx.fillText('Sem presenças marcadas ainda', 540, 700);
     } else {
@@ -5591,24 +5695,23 @@ function generateSemanalCardBlob() {
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = theme.text;
-        ctx.font = 'bold 48px Arial, sans-serif';
+        ctx.font = `bold 48px ${theme.font}`;
         ctx.textAlign = 'center';
         ctx.fillText(medals[i], 130, y + 60);
         ctx.fillStyle = theme.text;
-        ctx.font = 'bold 30px Arial, sans-serif';
+        ctx.font = `bold 30px ${theme.font}`;
         ctx.textAlign = 'left';
         const firstName = p.name.split(' ').slice(0,2).join(' ');
         const displayName = firstName.length > 22 ? firstName.slice(0,21) + '…' : firstName;
         ctx.fillText(displayName.toUpperCase(), 190, y + 45);
         ctx.fillStyle = colors[i];
-        ctx.font = 'bold 18px Arial, sans-serif';
+        ctx.font = `bold 18px ${theme.font}`;
         ctx.fillText(p.present + '/' + p.total + ' presenças (' + Math.round(p.present/p.total*100) + '%)', 190, y + 72);
       });
     }
 
     _drawCoachOrgFooter(ctx, 1080, 1080, theme);
-    canvas.toBlob(blob => resolve(blob), 'image/png');
-  });
+    return new Promise(resolve => canvas.toBlob(blob => resolve(blob), 'image/png'));
 }
 
 async function shareBlob(blob, filename, title, text) {
@@ -5634,10 +5737,30 @@ let _sharePending = null; // { type:'treino'|'semanal', studentId?, workoutIdx? 
 
 function setShareOpt(opt, val) {
   _shareOpts[opt] = val;
-  // Atualiza todos os botões com data-opt=opt em qualquer modal aberto
-  document.querySelectorAll(`.share-opt-btn[data-opt="${opt}"]`).forEach(b => {
+  document.querySelectorAll(`.share-opt-btn[data-opt="${opt}"], .share-color-btn[data-opt="${opt}"]`).forEach(b => {
     b.classList.toggle('active', b.dataset.val === val);
   });
+}
+
+async function setShareImage(event) {
+  const file = event.target.files?.[0];
+  if(!file) return;
+  try {
+    const raw = await readFileAsDataURL(file);
+    const compressed = await comprimirImagem(raw, 600);
+    _shareOpts.imageDataUrl = compressed;
+    document.querySelectorAll('#conqImgStatus, #spkImgStatus').forEach(el => {
+      el.textContent = '✅ foto carregada';
+    });
+    showToast('📷 Foto adicionada ao card');
+  } catch(e) { showToast('Erro ao ler foto'); }
+}
+
+function setShareImageClear() {
+  _shareOpts.imageDataUrl = null;
+  ['conqImgInput','spkImgInput'].forEach(id => { const i = document.getElementById(id); if(i) i.value = ''; });
+  document.querySelectorAll('#conqImgStatus, #spkImgStatus').forEach(el => { el.textContent = ''; });
+  showToast('Foto removida');
 }
 
 function abrirSharePicker(type, ctx) {
@@ -5647,6 +5770,10 @@ function abrirSharePicker(type, ctx) {
   // Reset visual dos botões pro estado atual
   setShareOpt('size', _shareOpts.size);
   setShareOpt('bg', _shareOpts.bg);
+  setShareOpt('accent', _shareOpts.accent);
+  setShareOpt('font', _shareOpts.font);
+  const status = document.getElementById('spkImgStatus');
+  if(status) status.textContent = _shareOpts.imageDataUrl ? '✅ foto carregada' : '';
 
   // Mostra botão "enviar pro aluno" só se for treino com phone
   const btnAluno = document.getElementById('btnEnviarAluno');
@@ -5761,9 +5888,12 @@ function shareConquistaCardFromStudent(studentId) {
   document.getElementById('conqPesoAnterior').value = '';
   document.getElementById('conqPeriodo').value = '';
   document.getElementById('modalConquista').style.display = 'flex';
-  // Sincroniza visual dos botões com _shareOpts atual
   setShareOpt('size', _shareOpts.size);
   setShareOpt('bg', _shareOpts.bg);
+  setShareOpt('accent', _shareOpts.accent);
+  setShareOpt('font', _shareOpts.font);
+  const status = document.getElementById('conqImgStatus');
+  if(status) status.textContent = _shareOpts.imageDataUrl ? '✅ foto carregada' : '';
 }
 
 function fecharModalConquista() {
