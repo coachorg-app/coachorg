@@ -6673,6 +6673,150 @@ function renderGoalProgress() {
     </div>`;
 }
 
+// ===== BIBLIOTECA DE DICAS DE CRESCIMENTO =====
+const GROWTH_TIPS = [
+  // 🎬 MARKETING DIGITAL
+  { id:'reels_antes_depois', cat:'Marketing', icon:'🎬', title:'Reels antes/depois (com permissão do aluno)',
+    desc:'Posta evolução de carga ou medida. Apps grátis pra editar: CapCut. 1 Reels/semana traz lead orgânico.',
+    actionLabel:'Gerar card do aluno ›', action:'showPage("students")' },
+  { id:'stories_bastidor', cat:'Marketing', icon:'📱', title:'Stories de bastidor todos os dias',
+    desc:'15s mostrando você atendendo, treino do dia, dica rápida. Constância importa mais que produção.' },
+  { id:'video_tecnica', cat:'Marketing', icon:'🎥', title:'Vídeo curto explicando técnica',
+    desc:'Tipo: "3 erros no agachamento". 30s, vertical, hashtag local. Gera autoridade rápido.' },
+  { id:'post_mito_verdade', cat:'Marketing', icon:'💡', title:'Post "Mito ou Verdade" no feed',
+    desc:'Ex: "Treinar suado emagrece mais?". Posts educativos engajam 2x mais que motivacional.' },
+
+  // 🤝 INDICAÇÃO / REFERRAL
+  { id:'desconto_indica_amigo', cat:'Indicação', icon:'🎁', title:'Aluno atual indica → ganha desconto',
+    desc:'Modelo: "Indique um amigo, sua próxima mensalidade tem 30% off". 1 indicação = 1 cliente novo.' },
+  { id:'aula_avaliacao_gratis', cat:'Indicação', icon:'✨', title:'Primeira aula de avaliação grátis',
+    desc:'Anuncia: "Aula experimental grátis com anamnese e teste físico". Taxa de conversão fica 40-60%.' },
+  { id:'pacote_duo_trio', cat:'Indicação', icon:'👥', title:'Pacote dupla/trio com desconto',
+    desc:'Cônjuge/amigo/dupla pagam 30% menos. Mais barato pra eles, mesma hora pra você = mais R$/hora.' },
+
+  // 🏢 OFFLINE / PARCERIAS
+  { id:'parceria_nutri', cat:'Parcerias', icon:'🥗', title:'Parceria com nutricionista da região',
+    desc:'Troca de indicações 1-pra-1. Procura no Instagram local, oferece pacote conjunto. Cliente fechado.' },
+  { id:'parceria_fisio', cat:'Parcerias', icon:'🩺', title:'Parceria com fisioterapeuta',
+    desc:'Fisio indica pós-tratamento, você indica pra recuperação. Aluno chega já confiando.' },
+  { id:'condominio', cat:'Parcerias', icon:'🏢', title:'Aula experimental em condomínio',
+    desc:'Fala com a administração: "Aula grátis pra moradores". 1h, 5-10 pessoas, ganha 2-3 alunos por evento.' },
+  { id:'cartao_qr_bio', cat:'Parcerias', icon:'📇', title:'Cartão com QR Code do Instagram',
+    desc:'200 cartões saem R$50. Deixa em academia, padaria, mercado, salão. 1-2% vira aluno.' },
+
+  // 🎯 POSICIONAMENTO
+  { id:'nicho_especifico', cat:'Posicionamento', icon:'🎯', title:'Escolhe um nicho (gestantes, idosos, atletas)',
+    desc:'Personal genérico cobra 80. Especialista em gestantes cobra 150. Nicho = preço premium + ranking no Insta.' },
+  { id:'pacote_avaliacao', cat:'Posicionamento', icon:'📊', title:'Pacote mensal com avaliação trimestral',
+    desc:'Diferencia: "Toda 12ª semana avaliação física + foto + relatório". Vira evento, justifica preço.' },
+  { id:'anamnese_pro', cat:'Posicionamento', icon:'📋', title:'Anamnese profissional na 1ª aula',
+    desc:'Pergunta sobre lesões, medicamentos, objetivo, histórico. Aluno percebe seriedade = paga mais.' },
+
+  // ⭐ PROVA SOCIAL
+  { id:'depoimento_video', cat:'Prova social', icon:'⭐', title:'Vídeo depoimento de aluno satisfeito',
+    desc:'Pede pra alunos antigos: "Posso gravar 30s falando como foi?". Posta no destaque, gera prova.' },
+  { id:'resultado_numero', cat:'Prova social', icon:'🏆', title:'Comunica resultados em números',
+    desc:'Tipo: "Já transformei 47 alunos em 3 anos". Específico vende. Vago não.' },
+
+  // 🔄 RETENÇÃO (mantém os que tem)
+  { id:'aniversario_aula_extra', cat:'Retenção', icon:'🎂', title:'Aluno faz aniversário → ganha aula extra',
+    desc:'Custo pra você: zero. Valor percebido: alto. Aluno renova contrato com sorriso.' },
+  { id:'renovacao_pacote', cat:'Retenção', icon:'🔁', title:'Renovação com bônus visual',
+    desc:'Renovou 3 meses → ganha sessão de avaliação grátis. Renovou ano → ganha mês extra. Recompensa fidelidade.' },
+  { id:'check_in_semanal', cat:'Retenção', icon:'💬', title:'Check-in semanal por WhatsApp',
+    desc:'"Como foi sua semana? Vamos ajustar o treino?". 2min de mensagem evita evasão de aluno.' },
+
+  // 💰 MONETIZAÇÃO
+  { id:'aula_treino_funcional', cat:'Receita extra', icon:'⚡', title:'Aula em grupo de funcional 1x/semana',
+    desc:'Grupo de 5 pagando R$30/aula = R$150 em 1h. Mais que sua hora individual. Pega alunos casuais.' },
+  { id:'plano_treino_online', cat:'Receita extra', icon:'📲', title:'Vende plano de treino online',
+    desc:'Pra quem mora longe: plano mensal R$50 com vídeos das execuções. Receita passiva.' },
+  { id:'consultoria_pontual', cat:'Receita extra', icon:'🧠', title:'Consultoria avulsa pra atletas',
+    desc:'Cobra R$150 por consultoria de 1h: análise de ficha de academia + ajustes. Sem assinatura.' }
+];
+
+// Escolhe dicas baseadas no contexto
+function pickGrowthTips(numAlunos, dayCounts, emptyDays) {
+  const result = [];
+  const usedIds = new Set();
+  const seenKey = 'coachorg_growth_seen_' + new Date().toISOString().slice(0,10);
+  const seenToday = JSON.parse(localStorage.getItem(seenKey) || '[]');
+
+  // Pega prioridade alta baseado em contexto
+  let pool = [];
+
+  if(numAlunos === 0) {
+    // Sem alunos — foca em captação rápida
+    pool = ['aula_avaliacao_gratis','condominio','cartao_qr_bio','parceria_nutri','stories_bastidor'];
+  } else if(numAlunos < 5) {
+    // Poucos alunos — foca em divulgação + parcerias
+    pool = ['aula_avaliacao_gratis','reels_antes_depois','desconto_indica_amigo','parceria_nutri','condominio','pacote_duo_trio','nicho_especifico','cartao_qr_bio'];
+  } else if(numAlunos < 10) {
+    // Crescimento — indicação + posicionamento
+    pool = ['desconto_indica_amigo','reels_antes_depois','parceria_nutri','parceria_fisio','nicho_especifico','depoimento_video','pacote_duo_trio','anamnese_pro'];
+  } else if(numAlunos < 20) {
+    // Consolidação — retenção + receita extra
+    pool = ['check_in_semanal','aniversario_aula_extra','renovacao_pacote','aula_treino_funcional','depoimento_video','plano_treino_online','pacote_avaliacao'];
+  } else {
+    // Bem cheia — retenção + ticket
+    pool = ['renovacao_pacote','check_in_semanal','aula_treino_funcional','consultoria_pontual','plano_treino_online','nicho_especifico'];
+  }
+
+  // Dias vazios extra → puxa parcerias/divulgação
+  if(emptyDays && emptyDays.length >= 2) {
+    pool = pool.concat(['aula_treino_funcional','condominio','cartao_qr_bio']);
+  }
+
+  // Pega 2 dicas, evitando repetir as do dia
+  for(const id of pool) {
+    if(usedIds.has(id)) continue;
+    if(seenToday.includes(id) && result.length > 0) continue;
+    const tip = GROWTH_TIPS.find(t => t.id === id);
+    if(!tip) continue;
+    result.push({
+      icon: tip.icon,
+      priority: 1,
+      title: tip.title,
+      desc: tip.desc + (tip.cat ? ` <span style="opacity:.7">· ${tip.cat}</span>` : ''),
+      color: '#5b8cff',
+      action: tip.action || `abrirTodasDicasCrescimento()`,
+      actionLabel: tip.actionLabel || 'Ver mais dicas ›'
+    });
+    usedIds.add(id);
+    if(result.length >= 2) break;
+  }
+
+  // Registra que viu hoje
+  const upd = [...seenToday, ...[...usedIds]];
+  localStorage.setItem(seenKey, JSON.stringify(upd.slice(-20)));
+
+  return result;
+}
+
+function abrirTodasDicasCrescimento() {
+  const cats = {};
+  GROWTH_TIPS.forEach(t => {
+    cats[t.cat] = cats[t.cat] || [];
+    cats[t.cat].push(t);
+  });
+
+  let html = `<div style="font-size:11px;color:var(--text2);margin-bottom:14px;line-height:1.5">Dicas testadas pra ganhar mais alunos e mais R$. Ataque <strong>1-2 por semana</strong> — fazer 20 ao mesmo tempo não funciona.</div>`;
+
+  Object.entries(cats).forEach(([cat, tips]) => {
+    html += `<div style="font-size:10px;color:var(--text3);font-weight:800;letter-spacing:.5px;margin:14px 0 6px">${cat.toUpperCase()}</div>`;
+    html += `<div style="display:flex;flex-direction:column;gap:6px">`;
+    tips.forEach(t => {
+      html += `<div style="background:var(--bg);border-left:3px solid #5b8cff;border-radius:8px;padding:10px 12px">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px">${t.icon} ${t.title}</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.5">${t.desc}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  abrirModalGenerico('📈 Como ganhar mais alunos', html);
+}
+
 function generateInsights() {
   const insights = [];
   const today = new Date();
@@ -6782,16 +6926,9 @@ function generateInsights() {
     }
   }
 
-  // Potencial de crescimento
-  if(students.length < 10) {
-    const slots = [1,2,3,4,5].reduce((sum,i)=>sum+(dayCounts[i].count<5?5-dayCounts[i].count:0),0);
-    insights.push({
-      icon:'📈', priority:0,
-      title:`Você tem espaço para ${Math.min(slots,15)} novos alunos`,
-      desc:`Com ${students.length} alunos ativos, ainda há capacidade na sua agenda. Divulgue o app e cresça!`,
-      color:'#5b8cff'
-    });
-  }
+  // Dicas de crescimento (contextuais)
+  const dicasGrowth = pickGrowthTips(students.length, dayCounts, emptyDays);
+  dicasGrowth.forEach(d => insights.push(d));
 
   return insights.sort((a,b)=>b.priority-a.priority);
 }
