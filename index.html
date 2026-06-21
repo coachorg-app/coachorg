@@ -2382,6 +2382,7 @@ function updateAuthUI() {
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser.email}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px">${isPro ? '✅ ' + (PLAN_INFO[localStorage.getItem('coachorg_plan')||'mensal']?.label||'Pro') + ' ativo' : (BETA_MODE ? '🚧 Acesso BETA — tudo liberado' : '🔓 Plano Free')}</div>
+          ${(()=>{ const txt=getIAUsageText(); if(!txt) return ''; const u=getIAUsage(); const lim=getIALimit(); const pct=Math.min(100,Math.round(u.count/lim*100)); const col=pct>=90?'#ff5252':pct>=60?'#ffab00':'#4ade80'; return `<div style="margin-top:6px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">🎓 ${txt}</div><div style="height:3px;background:#ffffff10;border-radius:2px"><div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:.4s"></div></div></div>`; })()}
         </div>
         <button onclick="doSignOut()" style="background:#ffffff15;border:none;color:var(--text2);padding:7px 13px;border-radius:10px;font-size:12px;cursor:pointer;flex-shrink:0">Sair</button>
       </div>`;
@@ -2515,6 +2516,52 @@ const PLAN_INFO = {
   cortesia: {label:'Pro Cortesia', price:'3 meses grátis', btn:'Cortesia ativa'},
   vitalicio: {label:'Pro Vitalício', price:'Vitalício', btn:'Vitalício ativo'}
 };
+
+// ——— LIMITES DE IA POR PLANO ———
+const IA_LIMITS = { '':3, free:3, mensal:20, trimestral:20, anual:80, cortesia:10, vitalicio:999, fundador:999 };
+
+function _iaMonthKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+
+function getIAUsage() {
+  try {
+    const o = JSON.parse(localStorage.getItem('coachorg_ia_usage') || '{}');
+    return (o.month === _iaMonthKey()) ? o : { month: _iaMonthKey(), count: 0 };
+  } catch(e) { return { month: _iaMonthKey(), count: 0 }; }
+}
+
+function getIALimit() {
+  if(BETA_MODE) return 999;
+  if(currentUser?.email === _ADMIN) return 999;
+  return IA_LIMITS[localStorage.getItem('coachorg_plan') || ''] ?? 3;
+}
+
+function consumeIA() {
+  const limit = getIALimit();
+  const u = getIAUsage();
+  if(u.count >= limit) return false;
+  u.count++;
+  localStorage.setItem('coachorg_ia_usage', JSON.stringify(u));
+  return true;
+}
+
+function showIALimitBlocked() {
+  const limit = getIALimit();
+  const planAtual = localStorage.getItem('coachorg_plan') || 'free';
+  const isPlanFree = !isPro || planAtual === '';
+  showToast(`🎓 ${limit} análises usadas este mês${isPlanFree ? ' — faça upgrade pra continuar' : ''}`);
+  if(isPlanFree || planAtual === 'mensal') setTimeout(() => openUpgrade(), 900);
+}
+
+function getIAUsageText() {
+  if(BETA_MODE) return null;
+  const u = getIAUsage();
+  const limit = getIALimit();
+  if(limit >= 999) return null;
+  return `${u.count}/${limit} análises IA este mês`;
+}
 
 const FUNDADOR_TOTAL_SLOTS = 50;
 function getFundadorSlotsLeft() {
@@ -3323,6 +3370,7 @@ async function calcularCalorias() {
   if(!_calMealKey) return;
   const txt = document.getElementById('comidaTexto').value.trim();
   if(!txt) { showToast('Descreva o que comeu'); return; }
+  if(!consumeIA()) { showIALimitBlocked(); return; }
   const btn = document.getElementById('btnCalcularCal');
   const result = document.getElementById('comidaResult');
   btn.textContent = 'Calculando...';
@@ -4262,6 +4310,7 @@ function renderPosturaPreview() {
 
 async function analisarPostura() {
   if(_posturaImagens.length === 0) { showToast('Adicione pelo menos 1 foto'); return; }
+  if(!consumeIA()) { showIALimitBlocked(); return; }
   const alvoId = document.getElementById('posturaAlvo').value;
   const btn = document.getElementById('btnAnalisarPostura');
   const result = document.getElementById('posturaResult');
@@ -4357,6 +4406,7 @@ async function validarMeuTreino() {
   const btn = document.getElementById('meuPhdBtn');
   const result = document.getElementById('meuTreinoResult');
   if(!txt) { showToast('Escreve o treino primeiro'); return; }
+  if(!consumeIA()) { showIALimitBlocked(); return; }
   btn.textContent = '🎓 Analisando...';
   btn.disabled = true;
   let geminiOk = false;
@@ -7005,6 +7055,7 @@ async function validatePhDWorkout(studentId) {
   const btn = document.getElementById('phdValidateBtn_'+studentId);
   const text = input.value.trim();
   if(!text) { showToast('Cole um treino ou descreva o objetivo'); return; }
+  if(!consumeIA()) { showIALimitBlocked(); return; }
 
   btn.textContent = '🎓 Analisando...';
   btn.disabled = true;
