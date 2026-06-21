@@ -1763,7 +1763,10 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
     </div>
   </div>
 
-  <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:24px;padding-bottom:80px">CoachOrg v3.0 Pro · IA + WhatsApp + Agenda + Financeiro</div>
+  <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:24px;padding-bottom:80px">
+    CoachOrg v3.0 Pro · IA + WhatsApp + Agenda + Financeiro<br>
+    <button onclick="openTermosModal()" style="background:none;border:none;color:#5b8cff;font-size:10px;cursor:pointer;margin-top:6px;text-decoration:underline">📄 Termos de Uso & Privacidade (LGPD)</button>
+  </div>
 </div>
 
 <!-- PAGE: STUDENT DETAIL -->
@@ -4296,6 +4299,7 @@ function renderPosturaResult(container, data, alvoId) {
       </div>`).join('')}
 
       <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:10px;font-style:italic">Personal PhD · análise visual baseada em Kendall, Sahrmann, Janda</div>
+      <div style="font-size:10px;color:#ffab0080;border:1px solid #ffab0020;border-radius:8px;padding:8px;margin-top:8px;text-align:center;line-height:1.5">⚠️ Ferramenta de apoio educacional. Não substitui avaliação profissional presencial. Em caso de dor, busque médico/fisioterapeuta.</div>
     </div>`;
 }
 
@@ -7112,6 +7116,7 @@ function renderPhDInsights(container, insights, isGemini, summary, treinoSugerid
         ${targetInputId ? `<button onclick="aplicarTreinoSugerido('${targetInputId}', this)" style="width:100%;background:#4ade80;color:#0f0f1a;border:none;border-radius:10px;padding:11px;font-weight:800;cursor:pointer;font-size:12px;margin-top:8px">✅ APLICAR NO TREINO</button>` : ''}
       </div>` : ''}
       <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:10px;font-style:italic">${isGemini ? 'Personal PhD — 30 anos em biomecânica e fisiologia · Literatura científica peer-reviewed' : 'Baseado em Schoenfeld 2021 + RP Scientific Principles of Hypertrophy'}</div>
+      <div style="font-size:10px;color:#ffab0080;border:1px solid #ffab0020;border-radius:8px;padding:8px;margin-top:8px;text-align:center;line-height:1.5">⚠️ Ferramenta de apoio educacional. Não substitui avaliação profissional presencial. Em caso de dor, busque médico/fisioterapeuta.</div>
     </div>`;
 }
 
@@ -8764,6 +8769,7 @@ checkPasswordResetURL();
 handleStravaCallback();
 checkBetaBanner();
 checkOnboarding();
+checkTermsAcceptance();
 checkNotifications();
 checkWhatsAppReminders();
 setInterval(()=>{ checkNotifications(); checkWhatsAppReminders(); }, 60000);
@@ -8793,6 +8799,149 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 // Service Worker
 if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// ——— TERMOS & PRIVACIDADE ———
+
+function openTermosModal() {
+  let m = document.getElementById('modalTermos');
+  if(!m) _buildTermosModal();
+  document.getElementById('modalTermos').classList.add('show');
+}
+
+function _buildTermosModal() {
+  const m = document.createElement('div');
+  m.id = 'modalTermos';
+  m.className = 'modal-overlay';
+  m.onclick = e => { if(e.target === m) m.classList.remove('show'); };
+  m.innerHTML = `
+  <div class="modal" style="max-width:480px;margin:16px auto;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <div class="modal-title">📄 Termos & Privacidade</div>
+      <button class="modal-close" onclick="document.getElementById('modalTermos').classList.remove('show')">×</button>
+    </div>
+    <div style="overflow-y:auto;padding:0 20px 24px;flex:1">
+
+      <!-- TABS -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1.5px solid var(--border);padding-bottom:12px">
+        <button id="tabTermos" onclick="_switchTermosTab('termos')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12px;cursor:pointer">Termos de Uso</button>
+        <button id="tabPrivacidade" onclick="_switchTermosTab('privacidade')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-weight:700;font-size:12px;cursor:pointer">Privacidade (LGPD)</button>
+      </div>
+
+      <!-- TERMOS DE USO -->
+      <div id="panelTermos" style="font-size:12px;color:var(--text);line-height:1.7">
+        <div style="font-size:14px;font-weight:800;margin-bottom:12px">Termos de Uso — CoachOrg</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:14px">Atualizado em Junho/2026</div>
+
+        <div style="font-weight:700;margin-bottom:4px">1. Sobre o CoachOrg</div>
+        <p style="color:var(--text2);margin-bottom:12px">CoachOrg é uma plataforma digital para profissionais de educação física que desejam organizar seus alunos, treinos, pagamentos e análises. O app é fornecido como ferramenta de apoio e não substitui a responsabilidade técnica do profissional.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">2. Uso permitido</div>
+        <p style="color:var(--text2);margin-bottom:12px">O CoachOrg destina-se exclusivamente a uso por profissionais de saúde e educação física habilitados pelo CREF ou equivalente. O uso indevido por pessoas não habilitadas é de responsabilidade exclusiva do usuário.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">3. IA e análises automáticas</div>
+        <p style="color:var(--text2);margin-bottom:4px">As análises geradas pelo Personal PhD (IA embarcada) são <strong>ferramentas de apoio educacional</strong> e não constituem diagnóstico, prescrição médica ou substituição de avaliação presencial.</p>
+        <div style="background:#ffab0010;border:1px solid #ffab0030;border-radius:8px;padding:10px;margin-bottom:12px;font-size:11px;color:#ffab00">⚠️ Em caso de dor, lesão suspeita ou alteração postural significativa, oriente o aluno a buscar avaliação médica ou fisioterápica presencial.</div>
+
+        <div style="font-weight:700;margin-bottom:4px">4. Planos e pagamentos</div>
+        <p style="color:var(--text2);margin-bottom:12px">O CoachOrg oferece plano gratuito com limitações e planos pagos (Mensal, Anual, Vitalício). Não há reembolso parcial após ativação do período pago, exceto nos casos previstos pelo CDC e pela legislação brasileira.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">5. Responsabilidade</div>
+        <p style="color:var(--text2);margin-bottom:12px">O CoachOrg não se responsabiliza por decisões de prescrição tomadas com base nas análises da IA. O profissional é o único responsável pelos treinos, orientações e condutas aplicadas aos seus alunos.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">6. Suspensão</div>
+        <p style="color:var(--text2);margin-bottom:12px">Reservamo-nos o direito de suspender contas que utilizem o app para fins ilícitos, spam, revenda não autorizada ou qualquer prática que viole estes Termos.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">7. Foro</div>
+        <p style="color:var(--text2);margin-bottom:4px">Estes Termos são regidos pela lei brasileira. O foro eleito é o da comarca do usuário, conforme CDC, art. 101.</p>
+      </div>
+
+      <!-- PRIVACIDADE LGPD -->
+      <div id="panelPrivacidade" style="display:none;font-size:12px;color:var(--text);line-height:1.7">
+        <div style="font-size:14px;font-weight:800;margin-bottom:12px">Política de Privacidade — CoachOrg</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:14px">Conforme LGPD (Lei 13.709/2018) · Atualizado em Junho/2026</div>
+
+        <div style="font-weight:700;margin-bottom:4px">1. Dados que coletamos</div>
+        <p style="color:var(--text2);margin-bottom:12px">Coletamos somente o necessário para a prestação do serviço: e-mail de login, nome, informações de alunos inseridas pelo profissional, dados de uso e análises realizadas. Não vendemos dados a terceiros.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">2. Finalidade</div>
+        <p style="color:var(--text2);margin-bottom:12px">Os dados são usados para autenticação, personalização do app, análises de IA, suporte e melhorias do produto. Dados de alunos pertencem ao profissional que os inseriu.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">3. Armazenamento</div>
+        <p style="color:var(--text2);margin-bottom:12px">Os dados são armazenados de forma segura no Supabase (servidores na UE e EUA). Dados sensíveis de saúde ficam criptografados em trânsito (TLS) e em repouso.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">4. Fotos de avaliação postural</div>
+        <p style="color:var(--text2);margin-bottom:12px">As imagens enviadas para análise postural são processadas pela IA e <strong>não são armazenadas permanentemente</strong> nos nossos servidores — são descartadas após a análise.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">5. Seus direitos (LGPD)</div>
+        <p style="color:var(--text2);margin-bottom:4px">Você tem direito a: acessar seus dados, corrigi-los, solicitar exclusão, portabilidade e revogar consentimento a qualquer momento. Basta exportar seus dados pelo app (Configurações → Exportar) ou enviar e-mail para:</p>
+        <div style="background:var(--card);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:#5b8cff">uanalee1@gmail.com</div>
+
+        <div style="font-weight:700;margin-bottom:4px">6. Cookies e rastreamento</div>
+        <p style="color:var(--text2);margin-bottom:12px">O CoachOrg usa localStorage para salvar preferências offline. Não usamos cookies de rastreamento de terceiros.</p>
+
+        <div style="font-weight:700;margin-bottom:4px">7. Menores de idade</div>
+        <p style="color:var(--text2);margin-bottom:4px">O app não deve ser usado para cadastrar alunos menores de 18 anos sem consentimento expresso dos responsáveis, conforme o ECA e LGPD.</p>
+      </div>
+
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function _switchTermosTab(tab) {
+  const isTermos = tab === 'termos';
+  document.getElementById('panelTermos').style.display = isTermos ? '' : 'none';
+  document.getElementById('panelPrivacidade').style.display = isTermos ? 'none' : '';
+  document.getElementById('tabTermos').style.cssText = isTermos
+    ? 'flex:1;padding:8px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12px;cursor:pointer'
+    : 'flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-weight:700;font-size:12px;cursor:pointer';
+  document.getElementById('tabPrivacidade').style.cssText = isTermos
+    ? 'flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-weight:700;font-size:12px;cursor:pointer'
+    : 'flex:1;padding:8px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12px;cursor:pointer';
+}
+
+function checkTermsAcceptance() {
+  if(localStorage.getItem('coachorg_terms_accepted')) return;
+  // Não mostrar durante onboarding (onboarding cobre o welcome)
+  if(!localStorage.getItem('coachorg_onboarding_done')) return;
+  setTimeout(() => _showTermsAcceptModal(), 600);
+}
+
+function _showTermsAcceptModal() {
+  if(document.getElementById('termsAcceptModal')) return;
+  const m = document.createElement('div');
+  m.id = 'termsAcceptModal';
+  m.className = 'modal-overlay';
+  m.style.zIndex = '9998';
+  m.innerHTML = `
+  <div class="modal" style="max-width:420px;margin:20px auto">
+    <div style="padding:24px 20px">
+      <div style="font-size:22px;text-align:center;margin-bottom:10px">📋</div>
+      <div style="font-size:16px;font-weight:800;text-align:center;margin-bottom:8px">Antes de continuar</div>
+      <p style="font-size:12px;color:var(--text2);text-align:center;line-height:1.6;margin-bottom:16px">
+        O CoachOrg e suas funções de IA são <strong style="color:var(--text)">ferramentas de apoio educacional</strong>. As análises não substituem avaliação profissional presencial.
+      </p>
+      <div style="background:#ffab0010;border:1px solid #ffab0030;border-radius:10px;padding:12px;margin-bottom:18px;font-size:11px;color:#ffab00;line-height:1.6;text-align:center">
+        ⚠️ Em caso de dor ou suspeita de lesão, oriente o aluno a buscar médico ou fisioterapeuta.
+      </div>
+      <p style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:16px">
+        Ao continuar, você concorda com os nossos
+        <button onclick="_switchTermosTab('termos');openTermosModal()" style="background:none;border:none;color:#5b8cff;font-size:11px;cursor:pointer;padding:0;text-decoration:underline">Termos de Uso</button>
+        e
+        <button onclick="_switchTermosTab('privacidade');openTermosModal()" style="background:none;border:none;color:#5b8cff;font-size:11px;cursor:pointer;padding:0;text-decoration:underline">Política de Privacidade</button>.
+      </p>
+      <button onclick="_aceitarTermos()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-weight:800;font-size:14px;cursor:pointer">Entendi e aceito continuar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  setTimeout(() => m.classList.add('show'), 50);
+}
+
+function _aceitarTermos() {
+  localStorage.setItem('coachorg_terms_accepted', '1');
+  const m = document.getElementById('termsAcceptModal');
+  if(m) { m.style.opacity = '0'; m.style.transition = 'opacity .3s'; setTimeout(() => m.remove(), 300); }
 }
 </script>
 </body>
