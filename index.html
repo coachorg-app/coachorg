@@ -930,7 +930,7 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
 </div>
 
 <!-- LOGIN WALL -->
-<div id="loginWall" style="display:none;position:fixed;inset:0;background:#0a0a14;z-index:9998;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px 32px;overflow-y:auto">
+<div id="loginWall" style="display:flex;position:fixed;inset:0;background:#0a0a14;z-index:9998;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px 32px;overflow-y:auto">
   <div style="width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center">
     <!-- Logo -->
     <svg width="72" height="72" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:16px">
@@ -2453,7 +2453,7 @@ function getSB() {
 
 async function initAuth() {
   const sb = getSB();
-  if(!sb) return;
+  if(!sb) { updateAuthUI(); return; }
   const { data: { session } } = await sb.auth.getSession();
   if(session?.user) { currentUser = session.user; await checkProStatus(); }
   updateAuthUI();
