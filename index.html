@@ -970,6 +970,7 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
     </button>
   </div>
 </div>
+<script>if(localStorage.getItem('coachorg_has_session')){document.getElementById('loginWall').style.display='none';}</script>
 
 <div id="betaBanner" style="display:none;background:linear-gradient(90deg,var(--accent2),var(--accent));padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:11px;color:#fff;font-weight:600;line-height:1.4">
   <span style="font-size:14px;flex-shrink:0">🚧</span>
@@ -2570,7 +2571,13 @@ async function doSignOut() {
 
 function updateAuthUI() {
   const wall = document.getElementById('loginWall');
-  if(wall) wall.style.display = currentUser ? 'none' : 'flex';
+  if(currentUser) {
+    localStorage.setItem('coachorg_has_session', '1');
+    if(wall) wall.style.display = 'none';
+  } else {
+    localStorage.removeItem('coachorg_has_session');
+    if(wall) wall.style.display = 'flex';
+  }
   const el = document.getElementById('authStatus');
   if(!el) return;
   if(currentUser) {
