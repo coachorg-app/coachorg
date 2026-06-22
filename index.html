@@ -960,7 +960,7 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
 </div>
 
 <div class="header">
-  <div style="display:flex;align-items:center;gap:6px">
+  <div style="display:flex;align-items:center;gap:3px">
     <svg class="logo-icon" width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <rect fill="#060504" width="100" height="100" rx="22"/>
       <line x1="22" y1="20" x2="22" y2="80" stroke="#F5F5F7" stroke-width="7" stroke-linecap="round"/>
@@ -1372,9 +1372,20 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
         </div>
       </button>
 
+      <!-- 🤖 PhD Coach -->
+      <button onclick="fecharMenuMais();openPhdChat()" style="width:100%;background:linear-gradient(135deg,var(--card2),var(--card));border:1.5px solid var(--accent-dim);border-radius:12px;padding:14px;cursor:pointer;font-size:13px;text-align:left;display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--text)">
+        <span style="font-size:22px">🤖</span>
+        <div style="flex:1">
+          <div style="font-weight:800">PhD Coach</div>
+          <div style="font-size:10px;color:var(--text2);font-weight:600">Treino · Saúde · Lesões · Nutrição</div>
+        </div>
+        <span style="color:var(--text3);font-size:14px">›</span>
+      </button>
+
       <!-- ⚙️ Configurações -->
       <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">⚙️ CONFIGURAÇÕES</div>
       <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+        <button onclick="fecharMenuMais();abrirTemasSheet()" class="menu-mais-btn">🎨 Tema <span>›</span></button>
         <button onclick="fecharMenuMais();showPage('settings');setTimeout(()=>document.getElementById('pushBtn')?.scrollIntoView({behavior:'smooth'}),200)" class="menu-mais-btn">🔔 Notificações & Lembretes <span>›</span></button>
         <button onclick="fecharMenuMais();showPage('settings');setTimeout(()=>document.getElementById('toggleWhatsappNotif')?.scrollIntoView({behavior:'smooth'}),200)" class="menu-mais-btn">💬 WhatsApp Automático <span>›</span></button>
       </div>
@@ -1415,6 +1426,30 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
       </div>
 
       <div style="text-align:center;font-size:9px;color:var(--text3);padding:8px;margin-top:8px;border-top:1px solid var(--border)">NOTCH v3.0</div>
+    </div>
+  </div>
+
+  <!-- Modal: PhD Chat -->
+  <div id="phdChatModal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;flex-direction:column">
+    <div style="padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <button onclick="closePhdChat()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;font-weight:600;padding:0;display:flex;align-items:center;gap:2px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar
+      </button>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:800">🤖 PhD Coach</div>
+        <div style="font-size:10px;color:var(--text2)" id="phdChatLimitText"></div>
+      </div>
+      <button onclick="clearPhdChat()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:6px">Limpar</button>
+    </div>
+    <div id="phdChatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
+    <div style="padding:10px 16px 14px;background:var(--card);border-top:1px solid var(--border);flex-shrink:0">
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <textarea id="phdChatInput" placeholder="Pergunte ao PhD Coach..." rows="1" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:20px;color:var(--text);padding:10px 16px;font-size:14px;font-family:inherit;resize:none;max-height:120px;line-height:1.4" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPhdChat()}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+        <button onclick="sendPhdChat()" id="phdChatSendBtn" style="background:var(--accent);border:none;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1854,7 +1889,7 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div>
             <div style="font-size:13px;font-weight:700;margin-bottom:3px">🎨 Tema do App</div>
-            <div style="font-size:12px;color:var(--text2)" id="temaAtualNome">Premium Utopia</div>
+            <div style="font-size:12px;color:var(--text2)" id="temaAtualNome">✨ Deserto</div>
           </div>
           <div style="display:flex;gap:5px;align-items:center">
             <div id="temaPreviewDots" style="display:flex;gap:4px"></div>
@@ -1863,7 +1898,10 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
         </div>
       </div>
 
-      <!-- Notificações -->
+      <!-- 🤖 Limite de IA -->
+      <div class="card" style="margin-bottom:10px" id="settingsIACard"></div>
+
+      <!-- 🔔 Notificações -->
       <div class="card" style="margin-bottom:10px">
         <div style="font-size:12px;color:var(--text2);font-weight:700;margin-bottom:10px">🔔 Notificações</div>
         <div style="text-align:center;padding:8px 0 14px">
@@ -1872,12 +1910,12 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
         </div>
         <div class="config-item" style="border-top:1px solid #ffffff10;padding-top:12px">
           <div>
-            <div class="config-label">Lembrete antes da aula</div>
-            <div class="config-desc">X min antes</div>
+            <div class="config-label">⏰ Lembrete Pré-Aula</div>
+            <div class="config-desc">Avisa antes de cada sessão</div>
           </div>
           <select id="notifyBeforeSel" onchange="saveSetting('notifyBefore', parseInt(this.value, 10))"
             style="background:var(--bg);border:1px solid #ffffff15;color:var(--text);padding:8px 10px;border-radius:10px;font-size:13px;cursor:pointer">
-            <option value="0">Desativado</option>
+            <option value="0">Off</option>
             <option value="5">5 min</option>
             <option value="10">10 min</option>
             <option value="15" selected>15 min</option>
@@ -1887,15 +1925,15 @@ details.config-section .config-chevron { transition: transform .2s; display:inli
         </div>
         <div class="config-item">
           <div>
-            <div class="config-label">Lembrete de Pagamento</div>
-            <div class="config-desc">3 dias antes</div>
+            <div class="config-label">💰 Cobrança</div>
+            <div class="config-desc">Alerta 3 dias antes do vencimento</div>
           </div>
           <button class="toggle on" id="togglePayNotif" onclick="toggleSetting('payNotif')"></button>
         </div>
         <div class="config-item">
           <div>
-            <div class="config-label">Horário Padrão</div>
-            <div class="config-desc">Início dos treinos</div>
+            <div class="config-label">🕐 Horário Padrão</div>
+            <div class="config-desc">Hora inicial pra novos alunos</div>
           </div>
           <input type="time" value="06:00" id="defaultTime" style="background:var(--bg);border:1px solid #ffffff15;color:var(--text);padding:8px 12px;border-radius:10px;font-size:13px" onchange="saveSetting('defaultTime',this.value)">
         </div>
@@ -3035,25 +3073,25 @@ const PLAN_INFO = {
   vitalicio: {label:'Pro Vitalício', price:'Vitalício', btn:'Vitalício ativo'}
 };
 
-// ——— LIMITES DE IA POR PLANO ———
-const IA_LIMITS = { '':3, free:3, mensal:20, trimestral:20, anual:80, cortesia:10, vitalicio:999, fundador:999 };
+// ——— LIMITES DE IA POR DIA ———
+const IA_LIMITS = { '':1, free:1, mensal:3, trimestral:3, anual:5, cortesia:2, vitalicio:30, fundador:30 };
 
-function _iaMonthKey() {
+function _iaDayKey() {
   const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function getIAUsage() {
   try {
     const o = JSON.parse(localStorage.getItem('coachorg_ia_usage') || '{}');
-    return (o.month === _iaMonthKey()) ? o : { month: _iaMonthKey(), count: 0 };
-  } catch(e) { return { month: _iaMonthKey(), count: 0 }; }
+    return (o.day === _iaDayKey()) ? o : { day: _iaDayKey(), count: 0 };
+  } catch(e) { return { day: _iaDayKey(), count: 0 }; }
 }
 
 function getIALimit() {
   if(BETA_MODE) return 999;
   if(currentUser?.email === _ADMIN) return 999;
-  return IA_LIMITS[localStorage.getItem('coachorg_plan') || ''] ?? 3;
+  return IA_LIMITS[localStorage.getItem('coachorg_plan') || ''] ?? 1;
 }
 
 function consumeIA() {
@@ -3061,6 +3099,7 @@ function consumeIA() {
   const u = getIAUsage();
   if(u.count >= limit) return false;
   u.count++;
+  u.day = _iaDayKey();
   localStorage.setItem('coachorg_ia_usage', JSON.stringify(u));
   return true;
 }
@@ -3069,7 +3108,7 @@ function showIALimitBlocked() {
   const limit = getIALimit();
   const planAtual = localStorage.getItem('coachorg_plan') || 'free';
   const isPlanFree = !isPro || planAtual === '';
-  showToast(`🎓 ${limit} análises usadas este mês${isPlanFree ? ' — faça upgrade pra continuar' : ''}`);
+  showToast(`🤖 Limite atingido — ${limit} análises/dia${isPlanFree ? '. Faça upgrade!' : '. Volta amanhã!'}`);
   if(isPlanFree || planAtual === 'mensal') setTimeout(() => openUpgrade(), 900);
 }
 
@@ -3078,7 +3117,169 @@ function getIAUsageText() {
   const u = getIAUsage();
   const limit = getIALimit();
   if(limit >= 999) return null;
-  return `${u.count}/${limit} análises IA este mês`;
+  return `${u.count}/${limit} análises IA hoje`;
+}
+
+function renderSettingsIA() {
+  const el = document.getElementById('settingsIACard');
+  if(!el) return;
+  const u = getIAUsage();
+  const limit = getIALimit();
+  const unlimited = limit >= 999;
+  const pct = unlimited ? 0 : Math.min(100, Math.round(u.count / limit * 100));
+  const col = pct >= 90 ? 'var(--accent)' : pct >= 60 ? '#ffab00' : '#4ade80';
+  const planKey = localStorage.getItem('coachorg_plan') || '';
+  const planLabel = PLAN_INFO[planKey]?.label || 'Free';
+  el.innerHTML = unlimited ? `
+    <div style="font-size:12px;color:var(--text2);font-weight:700;margin-bottom:12px">🤖 Limite de IA</div>
+    <div style="text-align:center;padding:6px 0">
+      <div style="font-size:22px;margin-bottom:2px">&#9854;</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text)">Ilimitado</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">${planLabel} — sem restrições</div>
+    </div>` : `
+    <div style="font-size:12px;color:var(--text2);font-weight:700;margin-bottom:12px">🤖 Limite de IA</div>
+    <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px">
+      <div style="font-size:26px;font-weight:800;color:var(--text)">${u.count}</div>
+      <div style="font-size:13px;color:var(--text3)">/ ${limit} usados hoje</div>
+    </div>
+    <div style="height:5px;background:#ffffff10;border-radius:3px;margin-bottom:10px">
+      <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:.4s"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:10px;color:var(--text3)">🔄 Reseta à meia-noite</div>
+      <div style="font-size:10px;color:var(--text2);font-weight:600">${planLabel}</div>
+    </div>
+    ${pct >= 80 && !isPro ? '<button onclick="openUpgrade()" style="width:100%;margin-top:10px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:12px;cursor:pointer">⚡ Upgrade pra mais análises</button>' : ''}`;
+}
+
+// ——— PhD CHAT ———
+const _PHD_SYSTEM = `Você é o PhD Coach do app NOTCH — consultor científico de bolso pro personal trainer. Nível pós-graduação em ciência do exercício, fisiologia, biomecânica e nutrição esportiva.
+
+SUA IDENTIDADE:
+- Você é o professor que TODO personal queria ter na faculdade
+- Cada resposta ensina o "POR QUÊ", não só o "o quê"
+- Cite autores/estudos reais (Schoenfeld, Helms, Israetel, Contreras, Krieger, Nuckols)
+- Quando houver controvérsia, apresente os dois lados (ex: falha muscular vs RIR)
+
+REGRAS ABSOLUTAS:
+- SEMPRE baseie em evidência. Sem achismo.
+- Priorize SEGURANÇA — máquinas pra iniciantes e lesionados
+- Seja direto e prático — o usuário é profissional, não leigo
+- Português BR informal, como colega de profissão
+- Se não tiver certeza, diga. Nunca invente dados.
+- NUNCA dê diagnóstico médico — "encaminhe pra fisio/ortopedista"
+- Respostas concisas: 150-250 palavras
+- Emojis como marcadores, **negrito** pra destaque, listas numeradas
+
+ESPECIALIDADES:
+1. PROGRAMAÇÃO: periodização (linear, ondulada diária/semanal, blocos, conjugada), volume (MEV/MAV/MRV por Israetel), intensidade, frequência, deload
+2. LESÕES: prevenção, substituição segura de exercícios, protocolos de retorno, bandeiras vermelhas pra encaminhar
+3. NUTRIÇÃO: proteína (1.6-2.2g/kg Schoenfeld 2018), timing, suplementação baseada em evidência, cutting/bulking
+4. POPULAÇÕES ESPECIAIS: idosos (sarcopenia), gestantes, diabéticos, hipertensos, pós-cirúrgicos, obesidade
+5. BIOMECÂNICA: análise de movimento, ROM, ativação muscular, ajustes de técnica
+6. CASOS CLÍNICOS: "aluno com X condição, como adaptar o treino"
+7. COMUNICAÇÃO: como explicar conceitos complexos pro aluno de forma simples`;
+
+let _chatHistory = [];
+
+function _loadChat() {
+  try { _chatHistory = JSON.parse(localStorage.getItem('coachorg_phd_chat') || '[]'); }
+  catch { _chatHistory = []; }
+}
+function _saveChat() {
+  localStorage.setItem('coachorg_phd_chat', JSON.stringify(_chatHistory.slice(-50)));
+}
+
+function openPhdChat() {
+  _loadChat();
+  document.getElementById('phdChatModal').style.display = 'flex';
+  _renderChat();
+  setTimeout(() => document.getElementById('phdChatInput').focus(), 100);
+}
+function closePhdChat() { document.getElementById('phdChatModal').style.display = 'none'; }
+function clearPhdChat() {
+  if(!confirm('Limpar histórico do chat?')) return;
+  _chatHistory = [];
+  _saveChat();
+  _renderChat();
+}
+
+function _renderChat() {
+  const el = document.getElementById('phdChatMessages');
+  const lim = document.getElementById('phdChatLimitText');
+  const u = getIAUsage(), limit = getIALimit();
+  lim.textContent = limit >= 999 ? 'Ilimitado' : `${u.count}/${limit} mensagens hoje`;
+
+  if(!_chatHistory.length) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:30px 20px">
+        <div style="font-size:40px;margin-bottom:10px">🤖</div>
+        <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px">PhD Coach</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:6px">Seu consultor científico de bolso.</div>
+        <div style="font-size:11px;color:var(--text3);line-height:1.4;margin-bottom:20px">Respostas com evidência · Cita estudos reais · Nível pós-graduação</div>
+        <div style="display:flex;flex-direction:column;gap:8px;max-width:300px;margin:0 auto">
+          <button onclick="this.parentElement.parentElement.style.display='none';document.getElementById('phdChatInput').value='Meu aluno sente dor no ombro ao fazer supino. Quais substituições seguras e por quê?';sendPhdChat()" style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:12px;cursor:pointer;text-align:left">🩺 Caso clínico: dor no ombro, como adaptar?</button>
+          <button onclick="this.parentElement.parentElement.style.display='none';document.getElementById('phdChatInput').value='Monte um mesociclo ondulado de 4 semanas focado em hipertrofia pra intermediário. Explique o MEV/MAV/MRV de cada grupo.';sendPhdChat()" style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:12px;cursor:pointer;text-align:left">📊 Periodização: mesociclo ondulado com volume</button>
+          <button onclick="this.parentElement.parentElement.style.display='none';document.getElementById('phdChatInput').value='Aluna gestante no 2° trimestre, treinava antes. O que manter e o que adaptar? Bandeiras vermelhas?';sendPhdChat()" style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:12px;cursor:pointer;text-align:left">🤰 População especial: gestante que treina</button>
+          <button onclick="this.parentElement.parentElement.style.display='none';document.getElementById('phdChatInput').value='Treinar até a falha muscular ou parar com RIR 1-2? Qual a evidência atual?';sendPhdChat()" style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:12px;cursor:pointer;text-align:left">🔬 Debate: falha muscular vs RIR — evidência</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = _chatHistory.map(m => {
+    const isU = m.role === 'user';
+    return `<div style="display:flex;justify-content:${isU?'flex-end':'flex-start'}${isU?';align-self:flex-end':''}">
+      <div style="max-width:85%;background:${isU?'var(--accent)':'var(--card)'};color:${isU?'#fff':'var(--text)'};padding:10px 14px;border-radius:${isU?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:13px;line-height:1.6;word-break:break-word">${_fmtChat(m.content)}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function _fmtChat(t) {
+  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>').replace(/^- /gm,'• ').replace(/^(\d+)\. /gm,'<strong>$1.</strong> ');
+}
+
+async function sendPhdChat() {
+  const input = document.getElementById('phdChatInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+  if(!consumeIA()) { showIALimitBlocked(); return; }
+
+  _chatHistory.push({ role:'user', content:msg });
+  input.value = '';
+  input.style.height = 'auto';
+  _renderChat();
+
+  const el = document.getElementById('phdChatMessages');
+  const typing = document.createElement('div');
+  typing.id = 'phdTyping';
+  typing.innerHTML = '<div style="background:var(--card);padding:10px 14px;border-radius:16px 16px 16px 4px;font-size:13px;color:var(--text2)">🤖 Analisando...</div>';
+  el.appendChild(typing);
+  el.scrollTop = el.scrollHeight;
+
+  const hist = _chatHistory.slice(-10).map(m =>
+    m.role==='user' ? `Personal: ${m.content}` : `PhD Coach: ${m.content}`
+  ).join('\n\n');
+  const fullPrompt = _PHD_SYSTEM + '\n\nCONVERSA:\n' + hist + '\n\nResponda a última mensagem do Personal:';
+
+  try {
+    const sb = getSB();
+    if(!sb) throw new Error('sem conexão');
+    const { data, error } = await sb.functions.invoke('gemini-proxy', { body:{ prompt:fullPrompt } });
+    if(error) throw error;
+    const reply = (data?.text || data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    if(!reply) throw new Error('resposta vazia');
+    _chatHistory.push({ role:'assistant', content:reply });
+  } catch(e) {
+    console.warn('PhD Chat erro:', e);
+    _chatHistory.push({ role:'assistant', content:'⚠️ Erro na conexão. Verifique sua internet e tente de novo.' });
+  }
+
+  _saveChat();
+  const tp = document.getElementById('phdTyping');
+  if(tp) tp.remove();
+  _renderChat();
 }
 
 const FUNDADOR_TOTAL_SLOTS = 50;
@@ -3229,7 +3430,7 @@ function showPage(name) {
   if(name==='students') renderStudents();
   if(name==='schedule') renderSchedule();
   if(name==='payments') renderPayments();
-  if(name==='settings') { renderCoachIA(); renderPaletaGrid(); }
+  if(name==='settings') { renderCoachIA(); renderPaletaGrid(); renderSettingsIA(); }
   if(name==='eu') renderEuPage();
 }
 
@@ -10582,8 +10783,8 @@ window._coachorgIntervals = [
 // ——— SISTEMA DE PALETAS ———
 const _PALETAS = {
   utopia: {
-    nome: 'Utopia', emoji: '✨',
-    desc: 'Cobre escuro · ouro fosco · deserto',
+    nome: 'Deserto', emoji: '✨',
+    desc: 'Cobre escuro · ouro fosco · areia',
     bg:'#080603', card:'#130C06', card2:'#1C1209', card3:'#261810',
     accent:'#C8781A', accent2:'#7A3E08', accentDim:'#C8781A40', accentGlow:'#C8781A20',
     green:'#1C7B5A', greenDim:'#1C7B5A20', yellow:'#D4952A', orange:'#E8872A', red:'#CC2200',
@@ -10593,8 +10794,8 @@ const _PALETAS = {
     preview: ['#080603','#C8781A','#D4952A','#EDE0C8']
   },
   astroworld: {
-    nome: 'Astroworld', emoji: '🎡',
-    desc: 'Laranja psicodélico · dourado · carnival',
+    nome: 'Carnival', emoji: '🎡',
+    desc: 'Laranja vibrante · dourado · energia',
     bg:'#0A0704', card:'#160D06', card2:'#201308', card3:'#2A190A',
     accent:'#E8722A', accent2:'#7A2D0A', accentDim:'#E8722A40', accentGlow:'#E8722A20',
     green:'#5C8C2E', greenDim:'#5C8C2E20', yellow:'#FFB830', orange:'#FF6B35', red:'#CC2200',
@@ -10604,8 +10805,8 @@ const _PALETAS = {
     preview: ['#0A0704','#E8722A','#FFB830','#F2E5CB']
   },
   rodeo: {
-    nome: 'Rodeo', emoji: '🤠',
-    desc: 'Carmesim profundo · couro · faroeste',
+    nome: 'Carmesim', emoji: '🔥',
+    desc: 'Vermelho profundo · couro · intenso',
     bg:'#0A0404', card:'#180808', card2:'#241010', card3:'#301414',
     accent:'#CC2B1A', accent2:'#7A1008', accentDim:'#CC2B1A40', accentGlow:'#CC2B1A20',
     green:'#5A7A3A', greenDim:'#5A7A3A20', yellow:'#D4952A', orange:'#E85030', red:'#CC2200',
@@ -10615,8 +10816,8 @@ const _PALETAS = {
     preview: ['#0A0404','#CC2B1A','#E84830','#F0D8C8']
   },
   daysbefore: {
-    nome: 'Days Before', emoji: '🌙',
-    desc: 'Roxo noturno · lean · luzes neon',
+    nome: 'Neon', emoji: '🌙',
+    desc: 'Roxo noturno · violeta · brilho',
     bg:'#060408', card:'#0E0814', card2:'#160C1E', card3:'#1E1228',
     accent:'#9B4CC8', accent2:'#5A1A80', accentDim:'#9B4CC840', accentGlow:'#9B4CC820',
     green:'#3A8A6A', greenDim:'#3A8A6A20', yellow:'#C88ADC', orange:'#A860D8', red:'#E04060',
@@ -10626,8 +10827,8 @@ const _PALETAS = {
     preview: ['#060408','#9B4CC8','#C45CE0','#E8D8F5']
   },
   birdstrap: {
-    nome: 'Birds Trap', emoji: '🌊',
-    desc: 'Azul noturno · metal frio · trap',
+    nome: 'Oceano', emoji: '🌊',
+    desc: 'Azul profundo · metal frio · calmo',
     bg:'#030608', card:'#080F14', card2:'#0D1820', card3:'#12222C',
     accent:'#2D7AAA', accent2:'#1A4060', accentDim:'#2D7AAA40', accentGlow:'#2D7AAA20',
     green:'#2A7A5A', greenDim:'#2A7A5A20', yellow:'#D4A030', orange:'#4A9EC8', red:'#EF3040',
@@ -10637,8 +10838,8 @@ const _PALETAS = {
     preview: ['#030608','#2D7AAA','#4A9EC8','#C8E0E8']
   },
   cactusjack: {
-    nome: 'Cactus Jack', emoji: '🌵',
-    desc: 'Mocha · sail · olive · Nike collab',
+    nome: 'Terra', emoji: '🍂',
+    desc: 'Mocha · oliva · tons naturais',
     bg:'#0A0604', card:'#14100A', card2:'#1E1810', card3:'#282018',
     accent:'#8B6040', accent2:'#5A3820', accentDim:'#8B604040', accentGlow:'#8B604020',
     green:'#6B7A48', greenDim:'#6B7A4820', yellow:'#C8A060', orange:'#A07838', red:'#CC2200',
@@ -10709,7 +10910,7 @@ function renderPaletaGrid() {
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
-  // Carregar paleta salva — padrão: Premium Utopia
+  // Carregar paleta salva — padrão: Deserto
   aplicarPaleta(localStorage.getItem('coachorg_paleta') || 'utopia');
   renderPaletaGrid();
 
